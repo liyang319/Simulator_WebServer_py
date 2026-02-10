@@ -1,5 +1,3 @@
-<!--{% load static %}-->
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -16,7 +14,7 @@
     <div class="layout">
         <!-- 侧边栏 -->
         <div class="sidebar">
-            <div class="logo">🔧 设备管理系统</div>
+            <div class="logo">🔧设备管理</div>
             <ul class="menu">
                 <li class="menu-item active" onclick="showModule('cabinet-management')">
                     <i class="fas fa-server"></i>
@@ -33,6 +31,16 @@
                 <li class="menu-item" onclick="showModule('module-management')">
                     <i class="fas fa-cube"></i>
                     <span>模块管理</span>
+                </li>
+                <!-- 新增信号管理菜单 -->
+                <li class="menu-item" onclick="showModule('signal-management')">
+                    <i class="fas fa-chart-line"></i>
+                    <span>信号管理</span>
+                </li>
+                <!-- 新增设置菜单 -->
+                <li class="menu-item" onclick="showModule('settings-management')">
+                    <i class="fas fa-cog"></i>
+                    <span>设置</span>
                 </li>
             </ul>
         </div>
@@ -310,6 +318,264 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 信号管理模块 -->
+                <div id="signal-management" class="module">
+                    <h2><i class="fas fa-chart-line"></i> 信号管理</h2>
+
+                    <div class="search-bar">
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label>信号名称/编号</label>
+                                <input type="text" id="signal-search" class="form-control" placeholder="输入信号名称或编号">
+                            </div>
+                            <div>
+                                <label>所属机柜</label>
+                                <select id="signal-cabinet-filter" class="form-control"
+                                    onchange="updateSignalMasterFilter()">
+                                    <option value="">全部机柜</option>
+                                    <!-- 动态加载机柜选项 -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>所属主站</label>
+                                <select id="signal-master-filter" class="form-control"
+                                    onchange="updateSignalSlaveFilter()">
+                                    <option value="">全部主站</option>
+                                    <!-- 动态加载主站选项 -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>所属从站</label>
+                                <select id="signal-slave-filter" class="form-control"
+                                    onchange="updateSignalModuleFilter()">
+                                    <option value="">全部从站</option>
+                                    <!-- 动态加载从站选项 -->
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="searchSignals()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetSignalFilter()">
+                                <i class="fas fa-redo"></i> 重置
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-success" onclick="showAddSignalModal()">
+                                <i class="fas fa-plus"></i> 新增信号
+                            </button>
+                            <button class="btn btn-warning" onclick="runSelectedSignals()" style="margin-left: 10px;">
+                                <i class="fas fa-play"></i> 运行
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span>信号列表</span>
+                                    <span class="badge badge-info" id="signal-count">共 0 个信号</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div class="form-check" style="margin: 0;">
+                                        <input class="form-check-input" type="checkbox" id="select-all-signals"
+                                            onchange="toggleSelectAllSignals()">
+                                        <label class="form-check-label" for="select-all-signals"
+                                            style="font-size: 12px;">
+                                            全选
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40px;">
+                                                <input type="checkbox" onclick="toggleCheckboxes(this)">
+                                            </th>
+                                            <th>信号编号</th>
+                                            <th>信号名称</th>
+                                            <th>所属路径</th>
+                                            <th>信号类型</th>
+                                            <th>通道编号</th>
+                                            <th>单位</th>
+                                            <th>量程范围</th>
+                                            <th>当前值</th>
+                                            <th>状态</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="signal-table-body">
+                                        <!-- 动态加载信号数据 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设置模块 -->
+                <div id="settings-management" class="module">
+                    <h2><i class="fas fa-cog"></i> 系统设置</h2>
+
+                    <div class="card">
+                        <div class="card-header">用户管理</div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <h5>当前用户信息</h5>
+                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                            <i class="fas fa-user-circle fa-2x" style="color: #1890ff;"></i>
+                                            <div style="margin-left: 15px;">
+                                                <div style="font-weight: bold; font-size: 16px;">管理员</div>
+                                                <div style="color: #666; font-size: 12px;">admin@device-system.com</div>
+                                            </div>
+                                        </div>
+                                        <div style="border-top: 1px solid #e8e8e8; padding-top: 15px;">
+                                            <div style="margin-bottom: 8px;">
+                                                <i class="fas fa-calendar-alt" style="color: #666; width: 20px;"></i>
+                                                <span style="margin-left: 8px;">最后登录：2024-01-15 14:30:25</span>
+                                            </div>
+                                            <div style="margin-bottom: 8px;">
+                                                <i class="fas fa-clock" style="color: #666; width: 20px;"></i>
+                                                <span style="margin-left: 8px;">在线时长：2小时15分钟</span>
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-shield-alt" style="color: #666; width: 20px;"></i>
+                                                <span style="margin-left: 8px;">角色：系统管理员</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 20px;">
+                                        <button class="btn btn-primary" onclick="changePassword()">
+                                            <i class="fas fa-key"></i> 修改密码
+                                        </button>
+                                        <button class="btn btn-warning" onclick="logout()" style="margin-left: 10px;">
+                                            <i class="fas fa-sign-out-alt"></i> 注销
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h5>系统状态</h5>
+                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                                        <div style="margin-bottom: 15px;">
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>数据存储状态</span>
+                                                <span class="badge badge-success">正常</span>
+                                            </div>
+                                            <div class="progress" style="height: 6px; margin-top: 5px;">
+                                                <div class="progress-bar bg-success" style="width: 65%"></div>
+                                            </div>
+                                            <div style="font-size: 12px; color: #666; margin-top: 5px;">已使用：15.8GB /
+                                                24GB</div>
+                                        </div>
+
+                                        <div style="margin-bottom: 15px;">
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>系统运行时间</span>
+                                                <span>30天15小时</span>
+                                            </div>
+                                        </div>
+
+                                        <div style="margin-bottom: 15px;">
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>设备连接状态</span>
+                                                <span class="badge badge-success">正常</span>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>数据同步状态</span>
+                                                <span class="badge badge-warning">警告</span>
+                                            </div>
+                                            <div style="font-size: 12px; color: #f5222d; margin-top: 5px;">3个设备连接异常
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">系统设置</div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <h5>数据备份</h5>
+                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                                        <div style="margin-bottom: 10px;">
+                                            <div><strong>最后备份：</strong> 2024-01-14 23:00:00</div>
+                                            <div><strong>下次备份：</strong> 2024-01-15 23:00:00</div>
+                                        </div>
+                                        <div style="margin-top: 15px;">
+                                            <button class="btn btn-sm btn-primary" onclick="backupNow()">
+                                                <i class="fas fa-database"></i> 立即备份
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary" onclick="restoreBackup()"
+                                                style="margin-left: 10px;">
+                                                <i class="fas fa-undo"></i> 恢复备份
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h5>日志设置</h5>
+                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                                        <div style="margin-bottom: 10px;">
+                                            <div><strong>日志级别：</strong> 信息</div>
+                                            <div><strong>日志保留：</strong> 30天</div>
+                                        </div>
+                                        <div style="margin-top: 15px;">
+                                            <button class="btn btn-sm btn-primary" onclick="clearLogs()">
+                                                <i class="fas fa-trash-alt"></i> 清空日志
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary" onclick="exportLogs()"
+                                                style="margin-left: 10px;">
+                                                <i class="fas fa-download"></i> 导出日志
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">操作日志</div>
+                        <div class="card-body">
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-time">2024-01-15 14:30:25</div>
+                                    <div>用户 admin 登录系统</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">2024-01-15 13:45:30</div>
+                                    <div>新增机柜：现场机柜3</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">2024-01-15 12:20:15</div>
+                                    <div>修改主站配置：PLC主站2</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">2024-01-15 11:30:40</div>
+                                    <div>新增信号：温度传感器1</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -527,6 +793,97 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" onclick="saveModule()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 信号添加/编辑模态框 -->
+    <div class="modal fade" id="signalModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="signalModalTitle">新增信号</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="signalForm">
+                        <input type="hidden" id="signal-id">
+                        <div class="mb-3">
+                            <label for="signal-cabinet" class="form-label">所属机柜 *</label>
+                            <select class="form-control" id="signal-cabinet" onchange="updateSignalMasterSelect()"
+                                required>
+                                <option value="">请选择机柜</option>
+                                <!-- 动态加载机柜选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-master" class="form-label">所属主站 *</label>
+                            <select class="form-control" id="signal-master" onchange="updateSignalSlaveSelect()"
+                                required>
+                                <option value="">请选择主站</option>
+                                <!-- 动态加载主站选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-slave" class="form-label">所属从站 *</label>
+                            <select class="form-control" id="signal-slave" onchange="updateSignalModuleSelect()"
+                                required>
+                                <option value="">请选择从站</option>
+                                <!-- 动态加载从站选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-module" class="form-label">所属模块 *</label>
+                            <select class="form-control" id="signal-module" required>
+                                <option value="">请选择模块</option>
+                                <!-- 动态加载模块选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-code" class="form-label">信号编号 *</label>
+                            <input type="text" class="form-control" id="signal-code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-name" class="form-label">信号名称 *</label>
+                            <input type="text" class="form-control" id="signal-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-type" class="form-label">信号类型 *</label>
+                            <select class="form-control" id="signal-type" required>
+                                <option value="AI">模拟量输入(AI)</option>
+                                <option value="AO">模拟量输出(AO)</option>
+                                <option value="DI">数字量输入(DI)</option>
+                                <option value="DO">数字量输出(DO)</option>
+                                <option value="RTD">温度(RTD)</option>
+                                <option value="TC">热电偶(TC)</option>
+                                <option value="PO">脉冲输出(PO)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-channel" class="form-label">通道编号 *</label>
+                            <input type="number" class="form-control" id="signal-channel" required min="1" max="32">
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-unit" class="form-label">单位</label>
+                            <input type="text" class="form-control" id="signal-unit" placeholder="例如：℃, MPa, %">
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-range" class="form-label">量程范围</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <input type="number" class="form-control" id="signal-range-min" placeholder="下限">
+                                <input type="number" class="form-control" id="signal-range-max" placeholder="上限">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signal-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="signal-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSignal()">保存</button>
                 </div>
             </div>
         </div>
