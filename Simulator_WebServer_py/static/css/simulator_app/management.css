@@ -26,8 +26,7 @@ body {
 
 /* 侧边栏样式 */
 .sidebar {
-    width: 180px;
-    /* 从250px改为200px */
+    width: 200px;
     background: var(--sidebar-bg);
     color: white;
     transition: width 0.3s ease;
@@ -35,12 +34,10 @@ body {
 
 .logo {
     padding: 15px;
-    /* 减少padding */
     text-align: center;
     border-bottom: 1px solid #033;
     font-weight: bold;
     font-size: 16px;
-    /* 减小字体大小 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,30 +52,24 @@ body {
 
 .menu-item {
     padding: 10px 15px;
-    /* 减小padding */
     cursor: pointer;
     border-left: 3px solid transparent;
     transition: all 0.3s;
     display: flex;
     align-items: center;
     font-size: 14px;
-    /* 减小字体大小 */
 }
 
-.menu-item:hover,
-.menu-item.active {
+.menu-item:hover, .menu-item.active {
     background: var(--sidebar-hover);
     border-left: 3px solid var(--primary);
 }
 
 .menu-item i {
     margin-right: 8px;
-    /* 减小间距 */
     width: 18px;
-    /* 减小宽度 */
     text-align: center;
     font-size: 13px;
-    /* 减小图标大小 */
 }
 
 .menu-item span {
@@ -100,7 +91,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     font-weight: 500;
 }
 
@@ -114,7 +105,7 @@ body {
 .card {
     background: white;
     border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 20px;
     border: 1px solid #e8e8e8;
 }
@@ -139,8 +130,7 @@ body {
     border-collapse: collapse;
 }
 
-.table th,
-.table td {
+.table th, .table td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #eee;
@@ -186,25 +176,11 @@ body {
     font-weight: normal;
 }
 
-.badge-success {
-    background: var(--success);
-}
-
-.badge-warning {
-    background: var(--warning);
-}
-
-.badge-danger {
-    background: var(--danger);
-}
-
-.badge-info {
-    background: var(--primary);
-}
-
-.badge-secondary {
-    background: #6c757d;
-}
+.badge-success { background: var(--success); }
+.badge-warning { background: var(--warning); }
+.badge-danger { background: var(--danger); }
+.badge-info { background: var(--primary); }
+.badge-secondary { background: #6c757d; }
 
 /* 按钮样式 */
 .btn {
@@ -459,7 +435,6 @@ body {
 @media (max-width: 768px) {
     .sidebar {
         width: 50px;
-        /* 更小的宽度 */
     }
 
     .sidebar span {
@@ -484,7 +459,7 @@ body {
         font-size: 16px;
     }
 
-    .search-bar>div {
+    .search-bar > div {
         grid-template-columns: 1fr !important;
     }
 
@@ -494,7 +469,19 @@ body {
 }
 
 @media (max-width: 1024px) {
-    .search-bar>div {
-        grid-template-columns: 1fr !important;
+    .search-bar > div {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .search-bar > div {
+        grid-template-columns: 1fr 1fr 1fr !important;
+    }
+}
+
+@media (max-width: 1400px) {
+    .search-bar > div {
+        grid-template-columns: 1fr 1fr 1fr 1fr !important;
     }
 }

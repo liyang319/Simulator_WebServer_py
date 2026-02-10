@@ -14,7 +14,7 @@ let deleteInfo = {
 };
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     initData();
     loadAllData();
     updateTime();
@@ -220,6 +220,13 @@ function initFilterSelects() {
     slaveFilters.forEach(filterId => {
         const select = document.getElementById(filterId);
         if (select) select.innerHTML = '<option value="">全部从站</option>';
+    });
+
+    // 模块过滤器
+    const moduleFilters = ['module-slave-filter', 'signal-module-filter'];
+    moduleFilters.forEach(filterId => {
+        const select = document.getElementById(filterId);
+        if (select) select.innerHTML = '<option value="">全部模块</option>';
     });
 }
 
@@ -1280,7 +1287,22 @@ function updateSignalSlaveFilter() {
 // 更新信号模块过滤器
 function updateSignalModuleFilter() {
     const slaveId = document.getElementById('signal-slave-filter').value;
-    // 注意：这个函数暂时不需要，因为信号管理的模块过滤是在添加/编辑时使用的
+    const moduleFilter = document.getElementById('signal-module-filter');
+
+    const currentValue = moduleFilter.value;
+    moduleFilter.innerHTML = '<option value="">全部模块</option>';
+
+    if (slaveId) {
+        const filteredModules = currentData.modules.filter(module => module.slaveId === slaveId);
+        filteredModules.forEach(module => {
+            const option = document.createElement('option');
+            option.value = module.id;
+            option.textContent = `${module.code} - ${module.name}`;
+            moduleFilter.appendChild(option);
+        });
+    }
+
+    moduleFilter.value = currentValue;
 }
 
 // 刷新信号视图
@@ -1289,6 +1311,7 @@ function refreshSignalView() {
     const cabinetId = document.getElementById('signal-cabinet-filter').value;
     const masterId = document.getElementById('signal-master-filter').value;
     const slaveId = document.getElementById('signal-slave-filter').value;
+    const moduleId = document.getElementById('signal-module-filter').value;
 
     let filteredSignals = currentData.signals;
 
@@ -1308,6 +1331,9 @@ function refreshSignalView() {
     }
     if (slaveId) {
         filteredSignals = filteredSignals.filter(signal => signal.slaveId === slaveId);
+    }
+    if (moduleId) {
+        filteredSignals = filteredSignals.filter(signal => signal.moduleId === moduleId);
     }
 
     const tbody = document.getElementById('signal-table-body');
@@ -1391,6 +1417,7 @@ function resetSignalFilter() {
     document.getElementById('signal-cabinet-filter').value = '';
     document.getElementById('signal-master-filter').value = '';
     document.getElementById('signal-slave-filter').value = '';
+    document.getElementById('signal-module-filter').value = '';
     refreshSignalView();
 }
 
