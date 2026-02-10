@@ -1,3 +1,7 @@
 from django.shortcuts import render
 
-# Create your views here.
+from django.shortcuts import render
+
+
+def management_view(request):
+    return render(request, 'simulator_app/management.html')

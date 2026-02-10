@@ -1,0 +1,558 @@
+<!--{% load static %}-->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备层级管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/simulator_app/management.css">
+</head>
+
+<body>
+    <div class="layout">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="logo">🔧 设备管理系统</div>
+            <ul class="menu">
+                <li class="menu-item active" onclick="showModule('cabinet-management')">
+                    <i class="fas fa-server"></i>
+                    <span>机柜管理</span>
+                </li>
+                <li class="menu-item" onclick="showModule('master-management')">
+                    <i class="fas fa-microchip"></i>
+                    <span>主站管理</span>
+                </li>
+                <li class="menu-item" onclick="showModule('slave-management')">
+                    <i class="fas fa-hdd"></i>
+                    <span>从站管理</span>
+                </li>
+                <li class="menu-item" onclick="showModule('module-management')">
+                    <i class="fas fa-cube"></i>
+                    <span>模块管理</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="header">
+                <div>设备层级管理系统</div>
+                <div>
+                    <span>管理员，您好！</span>
+                    <span id="current-time" style="margin-left: 20px;"></span>
+                </div>
+            </div>
+
+            <div class="content">
+                <!-- 机柜管理模块 -->
+                <div id="cabinet-management" class="module active">
+                    <h2><i class="fas fa-server"></i> 机柜管理</h2>
+
+                    <div class="search-bar">
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label>机柜名称/编号</label>
+                                <input type="text" id="cabinet-search" class="form-control" placeholder="输入机柜名称或编号">
+                            </div>
+                            <button class="btn btn-primary" onclick="searchCabinets()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-success" onclick="showAddCabinetModal()">
+                                <i class="fas fa-plus"></i> 新增机柜
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>机柜列表</span>
+                            <span class="badge badge-info" id="cabinet-count">共 0 个机柜</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>机柜编号</th>
+                                            <th>机柜名称</th>
+                                            <th>位置</th>
+                                            <th>状态</th>
+                                            <th>主站数量</th>
+                                            <th>从站数量</th>
+                                            <th>模块数量</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cabinet-table-body">
+                                        <!-- 动态加载机柜数据 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 主站管理模块 -->
+                <div id="master-management" class="module">
+                    <h2><i class="fas fa-microchip"></i> 主站管理</h2>
+
+                    <div class="search-bar">
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label>主站名称/编号</label>
+                                <input type="text" id="master-search" class="form-control" placeholder="输入主站名称或编号">
+                            </div>
+                            <div>
+                                <label>所属机柜</label>
+                                <select id="master-cabinet-filter" class="form-control">
+                                    <option value="">全部机柜</option>
+                                    <!-- 动态加载机柜选项 -->
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="searchMasters()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetMasterFilter()">
+                                <i class="fas fa-redo"></i> 重置
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-success" onclick="showAddMasterModal()">
+                                <i class="fas fa-plus"></i> 新增主站
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>主站列表</span>
+                            <span class="badge badge-info" id="master-count">共 0 个主站</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>主站编号</th>
+                                            <th>主站名称</th>
+                                            <th>所属机柜</th>
+                                            <th>IP地址</th>
+                                            <th>端口</th>
+                                            <th>状态</th>
+                                            <th>从站数量</th>
+                                            <th>模块数量</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="master-table-body">
+                                        <!-- 动态加载主站数据 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 从站管理模块 -->
+                <div id="slave-management" class="module">
+                    <h2><i class="fas fa-hdd"></i> 从站管理</h2>
+
+                    <div class="search-bar">
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label>从站名称/编号</label>
+                                <input type="text" id="slave-search" class="form-control" placeholder="输入从站名称或编号">
+                            </div>
+                            <div>
+                                <label>所属机柜</label>
+                                <select id="slave-cabinet-filter" class="form-control" onchange="updateMasterFilter()">
+                                    <option value="">全部机柜</option>
+                                    <!-- 动态加载机柜选项 -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>所属主站</label>
+                                <select id="slave-master-filter" class="form-control">
+                                    <option value="">全部主站</option>
+                                    <!-- 动态加载主站选项 -->
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="searchSlaves()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetSlaveFilter()">
+                                <i class="fas fa-redo"></i> 重置
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-success" onclick="showAddSlaveModal()">
+                                <i class="fas fa-plus"></i> 新增从站
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>从站列表</span>
+                            <span class="badge badge-info" id="slave-count">共 0 个从站</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>从站编号</th>
+                                            <th>从站名称</th>
+                                            <th>所属机柜</th>
+                                            <th>所属主站</th>
+                                            <th>从站地址</th>
+                                            <th>通信协议</th>
+                                            <th>状态</th>
+                                            <th>模块数量</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="slave-table-body">
+                                        <!-- 动态加载从站数据 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模块管理模块 -->
+                <div id="module-management" class="module">
+                    <h2><i class="fas fa-cube"></i> 模块管理</h2>
+
+                    <div class="search-bar">
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label>模块名称/编号</label>
+                                <input type="text" id="module-search" class="form-control" placeholder="输入模块名称或编号">
+                            </div>
+                            <div>
+                                <label>所属机柜</label>
+                                <select id="module-cabinet-filter" class="form-control"
+                                    onchange="updateModuleMasterFilter()">
+                                    <option value="">全部机柜</option>
+                                    <!-- 动态加载机柜选项 -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>所属主站</label>
+                                <select id="module-master-filter" class="form-control"
+                                    onchange="updateModuleSlaveFilter()">
+                                    <option value="">全部主站</option>
+                                    <!-- 动态加载主站选项 -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>所属从站</label>
+                                <select id="module-slave-filter" class="form-control">
+                                    <option value="">全部从站</option>
+                                    <!-- 动态加载从站选项 -->
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="searchModules()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetModuleFilter()">
+                                <i class="fas fa-redo"></i> 重置
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-success" onclick="showAddModuleModal()">
+                                <i class="fas fa-plus"></i> 新增模块
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>模块列表</span>
+                            <span class="badge badge-info" id="module-count">共 0 个模块</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>模块编号</th>
+                                            <th>模块名称</th>
+                                            <th>所属机柜</th>
+                                            <th>所属主站</th>
+                                            <th>所属从站</th>
+                                            <th>模块类型</th>
+                                            <th>通道数</th>
+                                            <th>状态</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="module-table-body">
+                                        <!-- 动态加载模块数据 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 机柜添加/编辑模态框 -->
+    <div class="modal fade" id="cabinetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cabinetModalTitle">新增机柜</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="cabinetForm">
+                        <input type="hidden" id="cabinet-id">
+                        <div class="mb-3">
+                            <label for="cabinet-code" class="form-label">机柜编号 *</label>
+                            <input type="text" class="form-control" id="cabinet-code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cabinet-name" class="form-label">机柜名称 *</label>
+                            <input type="text" class="form-control" id="cabinet-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cabinet-location" class="form-label">位置</label>
+                            <input type="text" class="form-control" id="cabinet-location">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cabinet-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="cabinet-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCabinet()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主站添加/编辑模态框 -->
+    <div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="masterModalTitle">新增主站</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="masterForm">
+                        <input type="hidden" id="master-id">
+                        <div class="mb-3">
+                            <label for="master-cabinet" class="form-label">所属机柜 *</label>
+                            <select class="form-control" id="master-cabinet" required>
+                                <option value="">请选择机柜</option>
+                                <!-- 动态加载机柜选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="master-code" class="form-label">主站编号 *</label>
+                            <input type="text" class="form-control" id="master-code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="master-name" class="form-label">主站名称 *</label>
+                            <input type="text" class="form-control" id="master-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="master-ip" class="form-label">IP地址 *</label>
+                            <input type="text" class="form-control" id="master-ip" required
+                                placeholder="例如：192.168.1.100">
+                        </div>
+                        <div class="mb-3">
+                            <label for="master-port" class="form-label">端口 *</label>
+                            <input type="number" class="form-control" id="master-port" required placeholder="例如：502">
+                        </div>
+                        <div class="mb-3">
+                            <label for="master-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="master-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMaster()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 从站添加/编辑模态框 -->
+    <div class="modal fade" id="slaveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="slaveModalTitle">新增从站</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="slaveForm">
+                        <input type="hidden" id="slave-id">
+                        <div class="mb-3">
+                            <label for="slave-cabinet" class="form-label">所属机柜 *</label>
+                            <select class="form-control" id="slave-cabinet" onchange="updateMasterSelect()" required>
+                                <option value="">请选择机柜</option>
+                                <!-- 动态加载机柜选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="slave-master" class="form-label">所属主站 *</label>
+                            <select class="form-control" id="slave-master" required>
+                                <option value="">请选择主站</option>
+                                <!-- 动态加载主站选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="slave-code" class="form-label">从站编号 *</label>
+                            <input type="text" class="form-control" id="slave-code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="slave-name" class="form-label">从站名称 *</label>
+                            <input type="text" class="form-control" id="slave-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="slave-address" class="form-label">从站地址 *</label>
+                            <input type="number" class="form-control" id="slave-address" required min="1" max="247">
+                        </div>
+                        <div class="mb-3">
+                            <label for="slave-protocol" class="form-label">通信协议 *</label>
+                            <select class="form-control" id="slave-protocol" required>
+                                <option value="MODBUS_RTU">MODBUS RTU</option>
+                                <option value="MODBUS_TCP">MODBUS TCP</option>
+                                <option value="PROFIBUS">PROFIBUS</option>
+                                <option value="PROFINET">PROFINET</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="slave-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="slave-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSlave()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模块添加/编辑模态框 -->
+    <div class="modal fade" id="moduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="moduleModalTitle">新增模块</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="moduleForm">
+                        <input type="hidden" id="module-id">
+                        <div class="mb-3">
+                            <label for="module-cabinet" class="form-label">所属机柜 *</label>
+                            <select class="form-control" id="module-cabinet" onchange="updateModuleMasterSelect()"
+                                required>
+                                <option value="">请选择机柜</option>
+                                <!-- 动态加载机柜选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-master" class="form-label">所属主站 *</label>
+                            <select class="form-control" id="module-master" onchange="updateModuleSlaveSelect()"
+                                required>
+                                <option value="">请选择主站</option>
+                                <!-- 动态加载主站选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-slave" class="form-label">所属从站 *</label>
+                            <select class="form-control" id="module-slave" required>
+                                <option value="">请选择从站</option>
+                                <!-- 动态加载从站选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-code" class="form-label">模块编号 *</label>
+                            <input type="text" class="form-control" id="module-code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-name" class="form-label">模块名称 *</label>
+                            <input type="text" class="form-control" id="module-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-type" class="form-label">模块类型 *</label>
+                            <select class="form-control" id="module-type" required>
+                                <option value="DI">数字量输入(DI)</option>
+                                <option value="DO">数字量输出(DO)</option>
+                                <option value="AI">模拟量输入(AI)</option>
+                                <option value="AO">模拟量输出(AO)</option>
+                                <option value="RTD">温度(RTD)</option>
+                                <option value="TC">热电偶(TC)</option>
+                                <option value="COMM">通信模块</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-channels" class="form-label">通道数 *</label>
+                            <input type="number" class="form-control" id="module-channels" required min="1" max="32">
+                        </div>
+                        <div class="mb-3">
+                            <label for="module-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="module-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveModule()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="delete-message">确定要删除此项吗？此操作不可恢复！</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/simulator_app/management.js"></script>
+</body>
+
+</html>
