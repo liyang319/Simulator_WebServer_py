@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'simulator_app'
 ]
 
 MIDDLEWARE = [
@@ -123,3 +124,25 @@ STATICFILES_DIRS = [  # 添加这行
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# MQTT配置
+MQTT_BROKER_HOST = '192.168.3.103'
+# MQTT_BROKER_HOST = '192.168.1.100'
+MQTT_BROKER_PORT = 1883
+MQTT_USERNAME = None
+MQTT_PASSWORD = None
+
+# 日志配置
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
