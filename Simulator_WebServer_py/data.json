@@ -1,0 +1,158 @@
+{
+    "cabinets": [
+        {
+            "id": "1",
+            "code": "CAB001",
+            "name": "主控机柜",
+            "location": "中央控制室",
+            "description": "主控制机柜",
+            "status": "online",
+            "createTime": "2024-01-01 08:00:00"
+        },
+        {
+            "id": "2",
+            "code": "CAB002",
+            "name": "现场机柜1",
+            "location": "生产车间A区",
+            "description": "生产现场机柜",
+            "status": "online",
+            "createTime": "2024-01-02 09:00:00"
+        },
+        {
+            "id": "3",
+            "code": "CAB003",
+            "name": "现场机柜2",
+            "location": "生产车间B区",
+            "description": "生产现场机柜",
+            "status": "offline",
+            "createTime": "2024-01-03 10:00:00"
+        }
+    ],
+    "masters": [
+        {
+            "id": "1",
+            "cabinetId": "1",
+            "code": "MST001",
+            "name": "PLC主站1",
+            "ip": "192.168.1.100",
+            "port": 502,
+            "description": "PLC控制主站",
+            "status": "online",
+            "createTime": "2024-01-01 08:30:00"
+        },
+        {
+            "id": "2",
+            "cabinetId": "1",
+            "code": "MST002",
+            "name": "PLC主站2",
+            "ip": "192.168.1.101",
+            "port": 503,
+            "description": "PLC控制主站",
+            "status": "online",
+            "createTime": "2024-01-01 09:00:00"
+        },
+        {
+            "id": "3",
+            "cabinetId": "2",
+            "code": "MST003",
+            "name": "现场主站1",
+            "ip": "192.168.1.102",
+            "port": 502,
+            "description": "现场控制主站",
+            "status": "online",
+            "createTime": "2024-01-02 09:30:00"
+        }
+    ],
+    "slaves": [
+        {
+            "id": "1",
+            "cabinetId": "1",
+            "masterId": "1",
+            "code": "SLV001",
+            "name": "IO从站1",
+            "address": 1,
+            "protocol": "MODBUS_TCP",
+            "description": "数字量IO从站",
+            "status": "online",
+            "createTime": "2024-01-01 09:00:00"
+        },
+        {
+            "id": "2",
+            "cabinetId": "1",
+            "masterId": "1",
+            "code": "SLV002",
+            "name": "IO从站2",
+            "address": 2,
+            "protocol": "MODBUS_TCP",
+            "description": "模拟量IO从站",
+            "status": "online",
+            "createTime": "2024-01-01 09:30:00"
+        },
+        {
+            "id": "3",
+            "cabinetId": "2",
+            "masterId": "3",
+            "code": "SLV003",
+            "name": "现场从站1",
+            "address": 1,
+            "protocol": "MODBUS_RTU",
+            "description": "现场控制从站",
+            "status": "online",
+            "createTime": "2024-01-02 10:00:00"
+        }
+    ],
+    "modules": [
+        {
+            "id": "1",
+            "cabinetId": "1",
+            "masterId": "1",
+            "slaveId": "1",
+            "code": "MOD001",
+            "name": "DI模块",
+            "type": "DI",
+            "channels": 16,
+            "description": "16通道数字量输入",
+            "status": "online",
+            "createTime": "2024-01-01 09:15:00"
+        },
+        {
+            "id": "2",
+            "cabinetId": "1",
+            "masterId": "1",
+            "slaveId": "1",
+            "code": "MOD002",
+            "name": "DO模块",
+            "type": "DO",
+            "channels": 16,
+            "description": "16通道数字量输出",
+            "status": "online",
+            "createTime": "2024-01-01 09:20:00"
+        },
+        {
+            "id": "3",
+            "cabinetId": "1",
+            "masterId": "1",
+            "slaveId": "2",
+            "code": "MOD003",
+            "name": "AI模块",
+            "type": "AI",
+            "channels": 8,
+            "description": "8通道模拟量输入",
+            "status": "online",
+            "createTime": "2024-01-01 09:30:00"
+        },
+        {
+            "id": "4",
+            "cabinetId": "2",
+            "masterId": "3",
+            "slaveId": "3",
+            "code": "MOD004",
+            "name": "RTD模块",
+            "type": "RTD",
+            "channels": 4,
+            "description": "4通道温度输入",
+            "status": "offline",
+            "createTime": "2024-01-02 10:30:00"
+        }
+    ]
+}
