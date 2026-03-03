@@ -29,7 +29,8 @@ class SimpleMQTTClient:
 
         # 订阅主题
         self.subscriptions = [
-            'rfid/data/#'
+            'simulator/data/#',
+            'simulator/command/#'
         ]
 
     def on_connect(self, client, userdata, flags, rc):
@@ -73,40 +74,19 @@ class SimpleMQTTClient:
 
     def process_message(self, topic: str, data: dict):
         """处理MQTT消息"""
-        try:
-            # 检查是否是批量标签数据格式
-            if data.get('command') == 'report_tags':
-                self.handle_batch_tags(topic, data)
-            elif 'rfid/data' in topic:
-                self.handle_rfid_data(topic, data)
-            elif 'rfid/status' in topic:
-                self.handle_device_status(topic, data)
-            else:
-                logger.warning(f"⚠️ 未知消息主题: {topic}")
+        print(data)
+        # try:
+        #     print(data)
+        #     # TODD：处理接收到的消息
+        #
+        # except Exception as e:
+        #     logger.error(f"❌ 处理消息错误: {e}")
 
-        except Exception as e:
-            logger.error(f"❌ 处理消息错误: {e}")
-
-    def handle_batch_tags(self, topic: str, data: dict):
-        """处理批量标签数据"""
+    def handle_data(self, topic: str, data: dict):
+        """处理数据"""
         try:
             # 提取设备ID
-            device_id = self.extract_device_id(topic) or data.get('reader_id', 'unknown')
-            data_type = data.get('data_type', 'unknown')
-            tags = data.get('tags', [])
-
-            logger.info(f"📦 收到批量标签数据: {len(tags)}个标签 - 类型: {data_type} - 设备: {device_id}")
-
-            # 处理每个标签
-            processed_count = 0
-            for tag_data in tags:
-                if self.process_single_tag(device_id, tag_data, data_type):
-                    processed_count += 1
-
-            # 更新设备状态
-            self.update_device_status(device_id, 'online', data)
-
-            logger.info(f"✅ 批量处理完成: {processed_count}/{len(tags)}个标签")
+            device_id = self.extract_device_id(topic)
 
         except Exception as e:
             logger.error(f"❌ 处理批量标签数据错误: {e}")

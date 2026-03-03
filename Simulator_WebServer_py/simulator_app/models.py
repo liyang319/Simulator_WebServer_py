@@ -1,3 +1,114 @@
+# simulator_app/models.py
+from django.db import models
+
+
+class Cabinet(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)  # 若希望前端生成ID则保留，否则可改用AutoField
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    location = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, default='online')
+    create_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class Master(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='masters')
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    ip = models.GenericIPAddressField()
+    port = models.IntegerField()
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, default='online')
+    create_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class Slave(models.Model):
+    PROTOCOL_CHOICES = [
+        ('MODBUS_RTU', 'MODBUS RTU'),
+        ('MODBUS_TCP', 'MODBUS TCP'),
+        ('PROFIBUS', 'PROFIBUS'),
+        ('PROFINET', 'PROFINET'),
+    ]
+    id = models.CharField(max_length=50, primary_key=True)
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='slaves')
+    master = models.ForeignKey(Master, on_delete=models.CASCADE, related_name='slaves')
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    address = models.IntegerField()
+    protocol = models.CharField(max_length=20, choices=PROTOCOL_CHOICES)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, default='online')
+    create_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class Module(models.Model):
+    TYPE_CHOICES = [
+        ('DI', '数字量输入(DI)'),
+        ('DO', '数字量输出(DO)'),
+        ('AI', '模拟量输入(AI)'),
+        ('AO', '模拟量输出(AO)'),
+        ('RTD', '温度(RTD)'),
+        ('TC', '热电偶(TC)'),
+        ('COMM', '通信模块'),
+    ]
+    id = models.CharField(max_length=50, primary_key=True)
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='modules')
+    master = models.ForeignKey(Master, on_delete=models.CASCADE, related_name='modules')
+    slave = models.ForeignKey(Slave, on_delete=models.CASCADE, related_name='modules')
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    channels = models.IntegerField()
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, default='online')
+    create_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class Signal(models.Model):
+    TYPE_CHOICES = [
+        ('AI', '模拟量输入(AI)'),
+        ('AO', '模拟量输出(AO)'),
+        ('DI', '数字量输入(DI)'),
+        ('DO', '数字量输出(DO)'),
+        ('RTD', '温度(RTD)'),
+        ('TC', '热电偶(TC)'),
+        ('PO', '脉冲输出(PO)'),
+    ]
+    id = models.CharField(max_length=50, primary_key=True)
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='signals')
+    master = models.ForeignKey(Master, on_delete=models.CASCADE, related_name='signals')
+    slave = models.ForeignKey(Slave, on_delete=models.CASCADE, related_name='signals')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='signals')
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    channel = models.IntegerField()
+    unit = models.CharField(max_length=20, blank=True)
+    range_min = models.FloatField(null=True, blank=True)
+    range_max = models.FloatField(null=True, blank=True)
+    current_value = models.FloatField(null=True, blank=True)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, default='online')
+    create_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
 from django.db import models
 
 # Create your models here.

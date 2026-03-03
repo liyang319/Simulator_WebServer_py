@@ -111,6 +111,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+# 允许所有来源（开发环境），生产环境应限制
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
