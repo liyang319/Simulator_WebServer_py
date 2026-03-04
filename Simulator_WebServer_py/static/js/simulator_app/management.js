@@ -1,4 +1,4 @@
-// management.js - 适配 Django REST API 版本
+// management.js - 适配 Django REST API (字段名修正版)
 
 // 全局变量
 let currentData = {
@@ -15,17 +15,14 @@ let deleteInfo = {
     name: ''
 };
 
-// API 基础路径（可根据实际情况调整，这里假设 API 挂载在 /api/ 下）
 const API_BASE = '/api';
 
-// 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    loadAllData();                  // 从后端加载数据
+    loadAllData();
     updateTime();
     setInterval(updateTime, 1000);
     initFilterSelects();
 
-    // 监听模态框关闭事件，重置表单
     const modals = ['cabinetModal', 'masterModal', 'slaveModal', 'moduleModal', 'signalModal'];
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
@@ -36,34 +33,29 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ==================== 通用 API 请求函数 ====================
+// ==================== 通用 API 请求 ====================
 async function apiRequest(url, method = 'GET', data = null) {
     const options = {
         method,
         headers: { 'Content-Type': 'application/json' },
     };
-    if (data) {
-        options.body = JSON.stringify(data);
-    }
+    if (data) options.body = JSON.stringify(data);
     try {
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
-        // DELETE 请求可能没有响应体
-        if (method === 'DELETE') {
-            return null;
-        }
+        if (method === 'DELETE') return null;
         return await response.json();
     } catch (error) {
         console.error('API 请求失败:', error);
         alert(`请求失败: ${error.message}`);
-        throw error; // 让调用者处理
+        throw error;
     }
 }
 
-// ==================== 加载所有数据 ====================
+// ==================== 加载数据 ====================
 async function loadAllData() {
     try {
         const [cabinets, masters, slaves, modules, signals] = await Promise.all([
@@ -80,7 +72,6 @@ async function loadAllData() {
         currentData.modules = modules;
         currentData.signals = signals;
 
-        // 刷新所有视图
         refreshCabinetView();
         refreshMasterView();
         refreshSlaveView();
@@ -95,7 +86,6 @@ async function loadAllData() {
 
 // ==================== 工具函数 ====================
 function generateId() {
-    // 生成一个简单的唯一ID（与之前 localStorage 版本兼容）
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
@@ -114,7 +104,7 @@ function showModule(moduleId) {
     });
     document.getElementById(moduleId).classList.add('active');
     event.currentTarget.classList.add('active');
-    updateFilterSelects();  // 切换模块时更新过滤器下拉框
+    updateFilterSelects();
 }
 
 // ==================== 过滤器初始化与更新 ====================
@@ -142,7 +132,6 @@ function initFilterSelects() {
 }
 
 function updateFilterSelects() {
-    // 更新所有机柜过滤器
     const cabinetFilters = ['master-cabinet-filter', 'slave-cabinet-filter', 'module-cabinet-filter', 'signal-cabinet-filter'];
     cabinetFilters.forEach(filterId => {
         const select = document.getElementById(filterId);
@@ -159,15 +148,12 @@ function updateFilterSelects() {
         }
     });
 
-    // 更新从站管理中的主站过滤器
     updateMasterFilter();
-    // 更新模块管理中的主站过滤器
     updateModuleMasterFilter();
-    // 更新信号管理中的主站过滤器
     updateSignalMasterFilter();
 }
 
-// 以下过滤器更新函数与之前相同，但需要基于 currentData 操作
+// 以下过滤器函数中，所有外键字段名已改为后端返回的字段名（如 cabinet, master 等）
 function updateMasterFilter() {
     const cabinetId = document.getElementById('slave-cabinet-filter')?.value;
     const masterFilter = document.getElementById('slave-master-filter');
@@ -175,7 +161,7 @@ function updateMasterFilter() {
     const currentValue = masterFilter.value;
     masterFilter.innerHTML = '<option value="">全部主站</option>';
     const filteredMasters = cabinetId
-        ? currentData.masters.filter(m => m.cabinetId === cabinetId)
+        ? currentData.masters.filter(m => m.cabinet === cabinetId)
         : currentData.masters;
     filteredMasters.forEach(master => {
         const option = document.createElement('option');
@@ -193,7 +179,7 @@ function updateModuleMasterFilter() {
     const currentValue = masterFilter.value;
     masterFilter.innerHTML = '<option value="">全部主站</option>';
     const filteredMasters = cabinetId
-        ? currentData.masters.filter(m => m.cabinetId === cabinetId)
+        ? currentData.masters.filter(m => m.cabinet === cabinetId)
         : currentData.masters;
     filteredMasters.forEach(master => {
         const option = document.createElement('option');
@@ -212,7 +198,7 @@ function updateModuleSlaveFilter() {
     const currentValue = slaveFilter.value;
     slaveFilter.innerHTML = '<option value="">全部从站</option>';
     const filteredSlaves = masterId
-        ? currentData.slaves.filter(s => s.masterId === masterId)
+        ? currentData.slaves.filter(s => s.master === masterId)
         : currentData.slaves;
     filteredSlaves.forEach(slave => {
         const option = document.createElement('option');
@@ -230,7 +216,7 @@ function updateSignalMasterFilter() {
     const currentValue = masterFilter.value;
     masterFilter.innerHTML = '<option value="">全部主站</option>';
     const filteredMasters = cabinetId
-        ? currentData.masters.filter(m => m.cabinetId === cabinetId)
+        ? currentData.masters.filter(m => m.cabinet === cabinetId)
         : currentData.masters;
     filteredMasters.forEach(master => {
         const option = document.createElement('option');
@@ -250,7 +236,7 @@ function updateSignalSlaveFilter() {
     slaveFilter.innerHTML = '<option value="">全部从站</option>';
     let filteredSlaves = currentData.slaves;
     if (masterId) {
-        filteredSlaves = filteredSlaves.filter(s => s.masterId === masterId);
+        filteredSlaves = filteredSlaves.filter(s => s.master === masterId);
     }
     filteredSlaves.forEach(slave => {
         const option = document.createElement('option');
@@ -269,7 +255,7 @@ function updateSignalModuleFilter() {
     const currentValue = moduleFilter.value;
     moduleFilter.innerHTML = '<option value="">全部模块</option>';
     if (slaveId) {
-        const filteredModules = currentData.modules.filter(m => m.slaveId === slaveId);
+        const filteredModules = currentData.modules.filter(m => m.slave === slaveId);
         filteredModules.forEach(module => {
             const option = document.createElement('option');
             option.value = module.id;
@@ -295,9 +281,9 @@ function refreshCabinetView() {
     tbody.innerHTML = '';
 
     filteredCabinets.forEach(cabinet => {
-        const masterCount = currentData.masters.filter(m => m.cabinetId === cabinet.id).length;
-        const slaveCount = currentData.slaves.filter(s => s.cabinetId === cabinet.id).length;
-        const moduleCount = currentData.modules.filter(m => m.cabinetId === cabinet.id).length;
+        const masterCount = currentData.masters.filter(m => m.cabinet === cabinet.id).length;
+        const slaveCount = currentData.slaves.filter(s => s.cabinet === cabinet.id).length;
+        const moduleCount = currentData.modules.filter(m => m.cabinet === cabinet.id).length;
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -326,9 +312,7 @@ function refreshCabinetView() {
     document.getElementById('cabinet-count').textContent = `共 ${filteredCabinets.length} 个机柜`;
 }
 
-function searchCabinets() {
-    refreshCabinetView();
-}
+function searchCabinets() { refreshCabinetView(); }
 
 function showAddCabinetModal() {
     document.getElementById('cabinetModalTitle').textContent = '新增机柜';
@@ -343,7 +327,6 @@ function showAddCabinetModal() {
 function editCabinet(id) {
     const cabinet = currentData.cabinets.find(c => c.id === id);
     if (!cabinet) return;
-
     document.getElementById('cabinetModalTitle').textContent = '编辑机柜';
     document.getElementById('cabinet-id').value = cabinet.id;
     document.getElementById('cabinet-code').value = cabinet.code;
@@ -366,9 +349,7 @@ async function saveCabinet() {
     }
 
     const data = { code, name, location, description };
-    if (!id) {
-        data.id = generateId(); // 新增时生成ID
-    }
+    if (!id) data.id = generateId();
 
     try {
         if (id) {
@@ -398,17 +379,17 @@ function refreshMasterView() {
         );
     }
     if (cabinetId) {
-        filteredMasters = filteredMasters.filter(m => m.cabinetId === cabinetId);
+        filteredMasters = filteredMasters.filter(m => m.cabinet === cabinetId);
     }
 
     const tbody = document.getElementById('master-table-body');
     tbody.innerHTML = '';
 
     filteredMasters.forEach(master => {
-        const cabinet = currentData.cabinets.find(c => c.id === master.cabinetId);
+        const cabinet = currentData.cabinets.find(c => c.id === master.cabinet);
         const cabinetName = cabinet ? `${cabinet.code} - ${cabinet.name}` : '未知机柜';
-        const slaveCount = currentData.slaves.filter(s => s.masterId === master.id).length;
-        const moduleCount = currentData.modules.filter(m => m.masterId === master.id).length;
+        const slaveCount = currentData.slaves.filter(s => s.master === master.id).length;
+        const moduleCount = currentData.modules.filter(m => m.master === master.id).length;
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -439,6 +420,7 @@ function refreshMasterView() {
 }
 
 function searchMasters() { refreshMasterView(); }
+
 function resetMasterFilter() {
     document.getElementById('master-search').value = '';
     document.getElementById('master-cabinet-filter').value = '';
@@ -479,7 +461,7 @@ function editMaster(id) {
         const option = document.createElement('option');
         option.value = cabinet.id;
         option.textContent = `${cabinet.code} - ${cabinet.name}`;
-        option.selected = cabinet.id === master.cabinetId;
+        option.selected = cabinet.id === master.cabinet;
         cabinetSelect.appendChild(option);
     });
     new bootstrap.Modal(document.getElementById('masterModal')).show();
@@ -487,14 +469,14 @@ function editMaster(id) {
 
 async function saveMaster() {
     const id = document.getElementById('master-id').value;
-    const cabinetId = document.getElementById('master-cabinet').value;
+    const cabinet = document.getElementById('master-cabinet').value;  // 字段名改为 cabinet（对应后端）
     const code = document.getElementById('master-code').value.trim();
     const name = document.getElementById('master-name').value.trim();
     const ip = document.getElementById('master-ip').value.trim();
     const port = document.getElementById('master-port').value.trim();
     const description = document.getElementById('master-description').value.trim();
 
-    if (!cabinetId || !code || !name || !ip || !port) {
+    if (!cabinet || !code || !name || !ip || !port) {
         alert('所有带*的字段都不能为空！');
         return;
     }
@@ -504,7 +486,7 @@ async function saveMaster() {
         return;
     }
 
-    const data = { cabinetId, code, name, ip, port: parseInt(port), description };
+    const data = { cabinet, code, name, ip, port: parseInt(port), description };  // 字段名 cabinet
     if (!id) data.id = generateId();
 
     try {
@@ -527,7 +509,7 @@ function updateMasterSelect() {
     const masterSelect = document.getElementById('slave-master');
     masterSelect.innerHTML = '<option value="">请选择主站</option>';
     if (cabinetId) {
-        const filteredMasters = currentData.masters.filter(m => m.cabinetId === cabinetId);
+        const filteredMasters = currentData.masters.filter(m => m.cabinet === cabinetId);
         filteredMasters.forEach(master => {
             const option = document.createElement('option');
             option.value = master.id;
@@ -550,21 +532,21 @@ function refreshSlaveView() {
         );
     }
     if (cabinetId) {
-        filteredSlaves = filteredSlaves.filter(s => s.cabinetId === cabinetId);
+        filteredSlaves = filteredSlaves.filter(s => s.cabinet === cabinetId);
     }
     if (masterId) {
-        filteredSlaves = filteredSlaves.filter(s => s.masterId === masterId);
+        filteredSlaves = filteredSlaves.filter(s => s.master === masterId);
     }
 
     const tbody = document.getElementById('slave-table-body');
     tbody.innerHTML = '';
 
     filteredSlaves.forEach(slave => {
-        const cabinet = currentData.cabinets.find(c => c.id === slave.cabinetId);
-        const master = currentData.masters.find(m => m.id === slave.masterId);
+        const cabinet = currentData.cabinets.find(c => c.id === slave.cabinet);
+        const master = currentData.masters.find(m => m.id === slave.master);
         const cabinetName = cabinet ? `${cabinet.code} - ${cabinet.name}` : '未知机柜';
         const masterName = master ? `${master.code} - ${master.name}` : '未知主站';
-        const moduleCount = currentData.modules.filter(m => m.slaveId === slave.id).length;
+        const moduleCount = currentData.modules.filter(m => m.slave === slave.id).length;
         const protocolNames = {
             'MODBUS_RTU': 'MODBUS RTU',
             'MODBUS_TCP': 'MODBUS TCP',
@@ -601,6 +583,7 @@ function refreshSlaveView() {
 }
 
 function searchSlaves() { refreshSlaveView(); }
+
 function resetSlaveFilter() {
     document.getElementById('slave-search').value = '';
     document.getElementById('slave-cabinet-filter').value = '';
@@ -643,13 +626,13 @@ function editSlave(id) {
         const option = document.createElement('option');
         option.value = cabinet.id;
         option.textContent = `${cabinet.code} - ${cabinet.name}`;
-        option.selected = cabinet.id === slave.cabinetId;
+        option.selected = cabinet.id === slave.cabinet;
         cabinetSelect.appendChild(option);
     });
 
     updateMasterSelect();
     setTimeout(() => {
-        document.getElementById('slave-master').value = slave.masterId;
+        document.getElementById('slave-master').value = slave.master;
     }, 100);
 
     new bootstrap.Modal(document.getElementById('slaveModal')).show();
@@ -657,20 +640,20 @@ function editSlave(id) {
 
 async function saveSlave() {
     const id = document.getElementById('slave-id').value;
-    const cabinetId = document.getElementById('slave-cabinet').value;
-    const masterId = document.getElementById('slave-master').value;
+    const cabinet = document.getElementById('slave-cabinet').value;
+    const master = document.getElementById('slave-master').value;
     const code = document.getElementById('slave-code').value.trim();
     const name = document.getElementById('slave-name').value.trim();
     const address = document.getElementById('slave-address').value.trim();
     const protocol = document.getElementById('slave-protocol').value;
     const description = document.getElementById('slave-description').value.trim();
 
-    if (!cabinetId || !masterId || !code || !name || !address || !protocol) {
+    if (!cabinet || !master || !code || !name || !address || !protocol) {
         alert('所有带*的字段都不能为空！');
         return;
     }
 
-    const data = { cabinetId, masterId, code, name, address: parseInt(address), protocol, description };
+    const data = { cabinet, master, code, name, address: parseInt(address), protocol, description };
     if (!id) data.id = generateId();
 
     try {
@@ -693,7 +676,7 @@ function updateModuleMasterSelect() {
     const masterSelect = document.getElementById('module-master');
     masterSelect.innerHTML = '<option value="">请选择主站</option>';
     if (cabinetId) {
-        const filteredMasters = currentData.masters.filter(m => m.cabinetId === cabinetId);
+        const filteredMasters = currentData.masters.filter(m => m.cabinet === cabinetId);
         filteredMasters.forEach(master => {
             const option = document.createElement('option');
             option.value = master.id;
@@ -709,7 +692,7 @@ function updateModuleSlaveSelect() {
     const slaveSelect = document.getElementById('module-slave');
     slaveSelect.innerHTML = '<option value="">请选择从站</option>';
     if (masterId) {
-        const filteredSlaves = currentData.slaves.filter(s => s.masterId === masterId);
+        const filteredSlaves = currentData.slaves.filter(s => s.master === masterId);
         filteredSlaves.forEach(slave => {
             const option = document.createElement('option');
             option.value = slave.id;
@@ -733,17 +716,17 @@ function refreshModuleView() {
             m.type.toLowerCase().includes(searchTerm)
         );
     }
-    if (cabinetId) filteredModules = filteredModules.filter(m => m.cabinetId === cabinetId);
-    if (masterId) filteredModules = filteredModules.filter(m => m.masterId === masterId);
-    if (slaveId) filteredModules = filteredModules.filter(m => m.slaveId === slaveId);
+    if (cabinetId) filteredModules = filteredModules.filter(m => m.cabinet === cabinetId);
+    if (masterId) filteredModules = filteredModules.filter(m => m.master === masterId);
+    if (slaveId) filteredModules = filteredModules.filter(m => m.slave === slaveId);
 
     const tbody = document.getElementById('module-table-body');
     tbody.innerHTML = '';
 
     filteredModules.forEach(module => {
-        const cabinet = currentData.cabinets.find(c => c.id === module.cabinetId);
-        const master = currentData.masters.find(m => m.id === module.masterId);
-        const slave = currentData.slaves.find(s => s.id === module.slaveId);
+        const cabinet = currentData.cabinets.find(c => c.id === module.cabinet);
+        const master = currentData.masters.find(m => m.id === module.master);
+        const slave = currentData.slaves.find(s => s.id === module.slave);
         const cabinetName = cabinet ? `${cabinet.code} - ${cabinet.name}` : '未知机柜';
         const masterName = master ? `${master.code} - ${master.name}` : '未知主站';
         const slaveName = slave ? `${slave.code} - ${slave.name}` : '未知从站';
@@ -786,6 +769,7 @@ function refreshModuleView() {
 }
 
 function searchModules() { refreshModuleView(); }
+
 function resetModuleFilter() {
     document.getElementById('module-search').value = '';
     document.getElementById('module-cabinet-filter').value = '';
@@ -830,16 +814,16 @@ function editModule(id) {
         const option = document.createElement('option');
         option.value = cabinet.id;
         option.textContent = `${cabinet.code} - ${cabinet.name}`;
-        option.selected = cabinet.id === module.cabinetId;
+        option.selected = cabinet.id === module.cabinet;
         cabinetSelect.appendChild(option);
     });
 
     updateModuleMasterSelect();
     setTimeout(() => {
-        document.getElementById('module-master').value = module.masterId;
+        document.getElementById('module-master').value = module.master;
         updateModuleSlaveSelect();
         setTimeout(() => {
-            document.getElementById('module-slave').value = module.slaveId;
+            document.getElementById('module-slave').value = module.slave;
         }, 100);
     }, 100);
     new bootstrap.Modal(document.getElementById('moduleModal')).show();
@@ -847,21 +831,21 @@ function editModule(id) {
 
 async function saveModule() {
     const id = document.getElementById('module-id').value;
-    const cabinetId = document.getElementById('module-cabinet').value;
-    const masterId = document.getElementById('module-master').value;
-    const slaveId = document.getElementById('module-slave').value;
+    const cabinet = document.getElementById('module-cabinet').value;
+    const master = document.getElementById('module-master').value;
+    const slave = document.getElementById('module-slave').value;
     const code = document.getElementById('module-code').value.trim();
     const name = document.getElementById('module-name').value.trim();
     const type = document.getElementById('module-type').value;
     const channels = document.getElementById('module-channels').value.trim();
     const description = document.getElementById('module-description').value.trim();
 
-    if (!cabinetId || !masterId || !slaveId || !code || !name || !type || !channels) {
+    if (!cabinet || !master || !slave || !code || !name || !type || !channels) {
         alert('所有带*的字段都不能为空！');
         return;
     }
 
-    const data = { cabinetId, masterId, slaveId, code, name, type, channels: parseInt(channels), description };
+    const data = { cabinet, master, slave, code, name, type, channels: parseInt(channels), description };
     if (!id) data.id = generateId();
 
     try {
@@ -884,7 +868,7 @@ function updateSignalMasterSelect() {
     const masterSelect = document.getElementById('signal-master');
     masterSelect.innerHTML = '<option value="">请选择主站</option>';
     if (cabinetId) {
-        const filteredMasters = currentData.masters.filter(m => m.cabinetId === cabinetId);
+        const filteredMasters = currentData.masters.filter(m => m.cabinet === cabinetId);
         filteredMasters.forEach(master => {
             const option = document.createElement('option');
             option.value = master.id;
@@ -900,7 +884,7 @@ function updateSignalSlaveSelect() {
     const slaveSelect = document.getElementById('signal-slave');
     slaveSelect.innerHTML = '<option value="">请选择从站</option>';
     if (masterId) {
-        const filteredSlaves = currentData.slaves.filter(s => s.masterId === masterId);
+        const filteredSlaves = currentData.slaves.filter(s => s.master === masterId);
         filteredSlaves.forEach(slave => {
             const option = document.createElement('option');
             option.value = slave.id;
@@ -916,7 +900,7 @@ function updateSignalModuleSelect() {
     const moduleSelect = document.getElementById('signal-module');
     moduleSelect.innerHTML = '<option value="">请选择模块</option>';
     if (slaveId) {
-        const filteredModules = currentData.modules.filter(m => m.slaveId === slaveId);
+        const filteredModules = currentData.modules.filter(m => m.slave === slaveId);
         filteredModules.forEach(module => {
             const option = document.createElement('option');
             option.value = module.id;
@@ -940,19 +924,19 @@ function refreshSignalView() {
             s.name.toLowerCase().includes(searchTerm)
         );
     }
-    if (cabinetId) filteredSignals = filteredSignals.filter(s => s.cabinetId === cabinetId);
-    if (masterId) filteredSignals = filteredSignals.filter(s => s.masterId === masterId);
-    if (slaveId) filteredSignals = filteredSignals.filter(s => s.slaveId === slaveId);
-    if (moduleId) filteredSignals = filteredSignals.filter(s => s.moduleId === moduleId);
+    if (cabinetId) filteredSignals = filteredSignals.filter(s => s.cabinet === cabinetId);
+    if (masterId) filteredSignals = filteredSignals.filter(s => s.master === masterId);
+    if (slaveId) filteredSignals = filteredSignals.filter(s => s.slave === slaveId);
+    if (moduleId) filteredSignals = filteredSignals.filter(s => s.module === moduleId);
 
     const tbody = document.getElementById('signal-table-body');
     tbody.innerHTML = '';
 
     filteredSignals.forEach(signal => {
-        const cabinet = currentData.cabinets.find(c => c.id === signal.cabinetId);
-        const master = currentData.masters.find(m => m.id === signal.masterId);
-        const slave = currentData.slaves.find(s => s.id === signal.slaveId);
-        const module = currentData.modules.find(m => m.id === signal.moduleId);
+        const cabinet = currentData.cabinets.find(c => c.id === signal.cabinet);
+        const master = currentData.masters.find(m => m.id === signal.master);
+        const slave = currentData.slaves.find(s => s.id === signal.slave);
+        const module = currentData.modules.find(m => m.id === signal.module);
         const cabinetName = cabinet ? cabinet.code : '未知机柜';
         const masterName = master ? master.code : '未知主站';
         const slaveName = slave ? slave.code : '未知从站';
@@ -1011,6 +995,7 @@ function refreshSignalView() {
 }
 
 function searchSignals() { refreshSignalView(); }
+
 function resetSignalFilter() {
     document.getElementById('signal-search').value = '';
     document.getElementById('signal-cabinet-filter').value = '';
@@ -1060,19 +1045,19 @@ function editSignal(id) {
         const option = document.createElement('option');
         option.value = cabinet.id;
         option.textContent = `${cabinet.code} - ${cabinet.name}`;
-        option.selected = cabinet.id === signal.cabinetId;
+        option.selected = cabinet.id === signal.cabinet;
         cabinetSelect.appendChild(option);
     });
 
     updateSignalMasterSelect();
     setTimeout(() => {
-        document.getElementById('signal-master').value = signal.masterId;
+        document.getElementById('signal-master').value = signal.master;
         updateSignalSlaveSelect();
         setTimeout(() => {
-            document.getElementById('signal-slave').value = signal.slaveId;
+            document.getElementById('signal-slave').value = signal.slave;
             updateSignalModuleSelect();
             setTimeout(() => {
-                document.getElementById('signal-module').value = signal.moduleId;
+                document.getElementById('signal-module').value = signal.module;
             }, 100);
         }, 100);
     }, 100);
@@ -1081,10 +1066,10 @@ function editSignal(id) {
 
 async function saveSignal() {
     const id = document.getElementById('signal-id').value;
-    const cabinetId = document.getElementById('signal-cabinet').value;
-    const masterId = document.getElementById('signal-master').value;
-    const slaveId = document.getElementById('signal-slave').value;
-    const moduleId = document.getElementById('signal-module').value;
+    const cabinet = document.getElementById('signal-cabinet').value;
+    const master = document.getElementById('signal-master').value;
+    const slave = document.getElementById('signal-slave').value;
+    const module = document.getElementById('signal-module').value;
     const code = document.getElementById('signal-code').value.trim();
     const name = document.getElementById('signal-name').value.trim();
     const type = document.getElementById('signal-type').value;
@@ -1094,13 +1079,14 @@ async function saveSignal() {
     const rangeMax = document.getElementById('signal-range-max').value.trim();
     const description = document.getElementById('signal-description').value.trim();
 
-    if (!cabinetId || !masterId || !slaveId || !moduleId || !code || !name || !type || !channel) {
+    if (!cabinet || !master || !slave || !module || !code || !name || !type || !channel) {
         alert('所有带*的字段都不能为空！');
         return;
     }
 
     const data = {
-        cabinetId, masterId, slaveId, moduleId, code, name, type,
+        cabinet, master, slave, module,
+        code, name, type,
         channel: parseInt(channel),
         unit: unit || null,
         rangeMin: rangeMin ? parseFloat(rangeMin) : null,
@@ -1153,7 +1139,6 @@ function changePassword() {
 function logout() {
     if (confirm('确定要注销吗？')) {
         alert('注销成功！');
-        // 实际项目中可跳转到登录页： window.location.href = '/login';
     }
 }
 function backupNow() {
@@ -1178,7 +1163,6 @@ function exportLogs() {
 function confirmDeleteItem(type, id, name) {
     deleteInfo = { type, id, name };
     let message = `确定要删除${type} "${name}" 吗？`;
-    // 级联提示（可选，后端已处理级联，前端仅提示）
     document.getElementById('delete-message').innerHTML = message;
     new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
 }
