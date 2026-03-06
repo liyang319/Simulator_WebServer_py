@@ -353,7 +353,11 @@ async function saveCabinet() {
     }
 
     const data = { code, name, location, description };
-    if (!id) data.id = generateId();
+    if (id) {
+        data.id = id;  // 编辑时，将 id 放入 data
+    } else {
+        data.id = generateId();  // 新增时生成 id
+    }
 
     try {
         if (id) {
@@ -491,7 +495,11 @@ async function saveMaster() {
     }
 
     const data = { cabinet, code, name, ip, port: parseInt(port), description };  // 字段名 cabinet
-    if (!id) data.id = generateId();
+    if (id) {
+        data.id = id;  // 编辑时，将 id 放入 data
+    } else {
+        data.id = generateId();  // 新增时生成 id
+    }
 
     try {
         if (id) {
@@ -658,7 +666,11 @@ async function saveSlave() {
     }
 
     const data = { cabinet, master, code, name, address: parseInt(address), protocol, description };
-    if (!id) data.id = generateId();
+    if (id) {
+        data.id = id;  // 编辑时，将 id 放入 data
+    } else {
+        data.id = generateId();  // 新增时生成 id
+    }
 
     try {
         if (id) {
@@ -850,7 +862,11 @@ async function saveModule() {
     }
 
     const data = { cabinet, master, slave, code, name, type, channels: parseInt(channels), description };
-    if (!id) data.id = generateId();
+    if (id) {
+        data.id = id;  // 编辑时，将 id 放入 data
+    } else {
+        data.id = generateId();  // 新增时生成 id
+    }
 
     try {
         if (id) {
@@ -1097,7 +1113,11 @@ async function saveSignal() {
         rangeMax: rangeMax ? parseFloat(rangeMax) : null,
         description
     };
-    if (!id) data.id = generateId();
+    if (id) {
+        data.id = id;  // 编辑时，将 id 放入 data
+    } else {
+        data.id = generateId();  // 新增时生成 id
+    }
 
     try {
         if (id) {
@@ -1260,7 +1280,11 @@ async function saveProject() {
         description,
         signals: selectedSignals
     };
-    if (!id) data.id = generateId();
+    if (id) {
+        data.id = id;  // 编辑时，将 id 放入 data
+    } else {
+        data.id = generateId();  // 新增时生成 id
+    }
 
     try {
         if (id) {
