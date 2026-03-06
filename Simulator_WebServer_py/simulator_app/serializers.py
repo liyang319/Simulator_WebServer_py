@@ -1,6 +1,6 @@
 # simulator_app/serializers.py
 from rest_framework import serializers
-from .models import Cabinet, Master, Slave, Module, Signal
+from .models import Cabinet, Master, Slave, Module, Signal, Project
 
 class CabinetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,4 +25,10 @@ class ModuleSerializer(serializers.ModelSerializer):
 class SignalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Signal
+        fields = '__all__'
+
+class ProjectSerializer(serializers.ModelSerializer):
+    signals = serializers.PrimaryKeyRelatedField(many=True, queryset=Signal.objects.all())
+    class Meta:
+        model = Project
         fields = '__all__'

@@ -6,7 +6,8 @@ let currentData = {
     masters: [],
     slaves: [],
     modules: [],
-    signals: []
+    signals: [],
+    projects: []
 };
 
 let deleteInfo = {
@@ -58,12 +59,13 @@ async function apiRequest(url, method = 'GET', data = null) {
 // ==================== 加载数据 ====================
 async function loadAllData() {
     try {
-        const [cabinets, masters, slaves, modules, signals] = await Promise.all([
+        const [cabinets, masters, slaves, modules, signals, projects] = await Promise.all([
             apiRequest(`${API_BASE}/cabinets/`),
             apiRequest(`${API_BASE}/masters/`),
             apiRequest(`${API_BASE}/slaves/`),
             apiRequest(`${API_BASE}/modules/`),
-            apiRequest(`${API_BASE}/signals/`)
+            apiRequest(`${API_BASE}/signals/`),
+            apiRequest(`${API_BASE}/projects/`)
         ]);
 
         currentData.cabinets = cabinets;
@@ -71,12 +73,14 @@ async function loadAllData() {
         currentData.slaves = slaves;
         currentData.modules = modules;
         currentData.signals = signals;
+        currentData.projects = projects;
 
         refreshCabinetView();
         refreshMasterView();
         refreshSlaveView();
         refreshModuleView();
         refreshSignalView();
+        refreshProjectView();
         updateFilterSelects();
     } catch (error) {
         console.error('加载数据失败:', error);
@@ -1129,6 +1133,213 @@ function runSelectedSignals() {
         return;
     }
     alert(`正在运行以下信号：\n\n${selected.join(', ')}\n\n共 ${selected.length} 个信号`);
+}
+
+// ==================== 工程管理 ====================
+
+// 刷新工程列表
+function refreshProjectView() {
+    const searchTerm = document.getElementById('project-search').value.toLowerCase();
+    const filteredProjects = searchTerm
+        ? currentData.projects.filter(p =>
+            p.name.toLowerCase().includes(searchTerm) ||
+            (p.description && p.description.toLowerCase().includes(searchTerm))
+        )
+        : currentData.projects;
+
+    const tbody = document.getElementById('project-table-body');
+    tbody.innerHTML = '';
+
+    filteredProjects.forEach(project => {
+        const signalCount = project.signals ? project.signals.length : 0;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${project.name}</strong></td>
+            <td>${project.description || '-'}</td>
+            <td><span class="badge badge-info">${signalCount}</span></td>
+            <td>${project.created_at || project.create_time || '-'}</td>
+            <td class="action-buttons">
+                <button class="btn btn-sm" style="background: #e6f7ff;" onclick="startProject('${project.id}')">
+                    <i class="fas fa-play"></i> 启动
+                </button>
+                <button class="btn btn-sm" style="background: #f6ffed;" onclick="viewProject('${project.id}')">
+                    <i class="fas fa-eye"></i> 查看
+                </button>
+                <button class="btn btn-sm" style="background: #fff2e8;" onclick="editProject('${project.id}')">
+                    <i class="fas fa-edit"></i> 编辑
+                </button>
+                <button class="btn btn-sm" style="background: #fff1f0;" onclick="confirmDeleteItem('project', '${project.id}', '${project.name}')">
+                    <i class="fas fa-trash"></i> 删除
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById('project-count').textContent = `共 ${filteredProjects.length} 个工程`;
+}
+
+function searchProjects() {
+    refreshProjectView();
+}
+
+// 显示新建工程模态框
+function showAddProjectModal() {
+    document.getElementById('projectModalTitle').textContent = '新建工程';
+    document.getElementById('project-id').value = '';
+    document.getElementById('project-name').value = '';
+    document.getElementById('project-description').value = '';
+
+    // 生成信号复选框列表
+    const container = document.getElementById('signal-checkbox-list');
+    container.innerHTML = '';
+    currentData.signals.forEach(signal => {
+        const div = document.createElement('div');
+        div.className = 'form-check';
+        div.innerHTML = `
+            <input class="form-check-input" type="checkbox" value="${signal.id}" id="signal-${signal.id}">
+            <label class="form-check-label" for="signal-${signal.id}">
+                ${signal.code} - ${signal.name} (${signal.type})
+            </label>
+        `;
+        container.appendChild(div);
+    });
+
+    new bootstrap.Modal(document.getElementById('projectModal')).show();
+}
+
+// 编辑工程
+function editProject(id) {
+    const project = currentData.projects.find(p => p.id === id);
+    if (!project) return;
+
+    document.getElementById('projectModalTitle').textContent = '编辑工程';
+    document.getElementById('project-id').value = project.id;
+    document.getElementById('project-name').value = project.name;
+    document.getElementById('project-description').value = project.description || '';
+
+    // 生成信号复选框，并勾选已选中的
+    const container = document.getElementById('signal-checkbox-list');
+    container.innerHTML = '';
+    currentData.signals.forEach(signal => {
+        const div = document.createElement('div');
+        div.className = 'form-check';
+        const checked = project.signals && project.signals.includes(signal.id) ? 'checked' : '';
+        div.innerHTML = `
+            <input class="form-check-input" type="checkbox" value="${signal.id}" id="signal-${signal.id}" ${checked}>
+            <label class="form-check-label" for="signal-${signal.id}">
+                ${signal.code} - ${signal.name} (${signal.type})
+            </label>
+        `;
+        container.appendChild(div);
+    });
+
+    new bootstrap.Modal(document.getElementById('projectModal')).show();
+}
+
+// 保存工程
+async function saveProject() {
+    const id = document.getElementById('project-id').value;
+    const name = document.getElementById('project-name').value.trim();
+    const description = document.getElementById('project-description').value.trim();
+
+    if (!name) {
+        alert('工程名称不能为空！');
+        return;
+    }
+
+    // 获取选中的信号 ID
+    const selectedSignals = [];
+    document.querySelectorAll('#signal-checkbox-list input:checked').forEach(cb => {
+        selectedSignals.push(cb.value);
+    });
+
+    const data = {
+        name,
+        description,
+        signals: selectedSignals
+    };
+    if (!id) data.id = generateId();
+
+    try {
+        if (id) {
+            await apiRequest(`${API_BASE}/projects/${id}/`, 'PUT', data);
+        } else {
+            await apiRequest(`${API_BASE}/projects/`, 'POST', data);
+        }
+        await loadAllData();
+        bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+    } catch (error) {
+        console.error('保存工程失败:', error);
+        alert('保存失败，请重试');
+    }
+}
+
+// 查看工程详情
+function viewProject(id) {
+    const project = currentData.projects.find(p => p.id === id);
+    if (!project) return;
+
+    // 获取信号详情
+    const signals = project.signals.map(signalId => {
+        const sig = currentData.signals.find(s => s.id === signalId);
+        return sig ? `${sig.code} - ${sig.name} (${sig.type})` : '未知信号';
+    }).join('<br>');
+
+    const content = `
+        <h5>${project.name}</h5>
+        <p><strong>描述：</strong>${project.description || '无'}</p>
+        <p><strong>包含信号：</strong></p>
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px;">
+            ${signals || '无信号'}
+        </div>
+        <p class="mt-3"><strong>创建时间：</strong>${project.created_at || '-'}</p>
+    `;
+
+    document.getElementById('project-detail-content').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('projectDetailModal')).show();
+}
+
+// 启动工程
+function startProject(id) {
+    const project = currentData.projects.find(p => p.id === id);
+    if (!project) return;
+
+    // 获取信号名称和模块名称
+    const signalNames = [];
+    const moduleNames = new Set();
+    project.signals.forEach(signalId => {
+        const sig = currentData.signals.find(s => s.id === signalId);
+        if (sig) {
+            signalNames.push(sig.name);
+            // 查找该信号所属的模块
+            const module = currentData.modules.find(m => m.id === sig.module);
+            if (module) moduleNames.add(module.name);
+        }
+    });
+
+    alert(`启动工程：${project.name}\n包含信号：${signalNames.join(', ')}\n涉及模块：${Array.from(moduleNames).join(', ')}`);
+}
+
+// 在删除功能中添加对工程的级联处理（可选，但工程独立，不需要级联）
+function confirmDeleteItem(type, id, name) {
+    deleteInfo = { type, id, name };
+    let message = `确定要删除${type} "${name}" 吗？`;
+    document.getElementById('delete-message').innerHTML = message;
+    new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+}
+
+async function confirmDelete() {
+    const { type, id } = deleteInfo;
+    try {
+        await apiRequest(`${API_BASE}/${type}s/${id}/`, 'DELETE');
+        await loadAllData();
+        bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+    } catch (error) {
+        console.error('删除失败:', error);
+        alert('删除失败，请重试');
+    }
 }
 
 // ==================== 设置功能 ====================

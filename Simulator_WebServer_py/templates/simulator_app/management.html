@@ -37,10 +37,18 @@
                     <i class="fas fa-chart-line"></i>
                     <span>信号管理</span>
                 </li>
+                <li class="menu-item" onclick="showModule('project-management')">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>工程管理</span>
+                </li>
                 <!-- 新增设置菜单 -->
                 <li class="menu-item" onclick="showModule('settings-management')">
                     <i class="fas fa-cog"></i>
                     <span>设置</span>
+                </li>
+                <li class="menu-item" onclick="showModule('help-management')">
+                    <i class="fas fa-question-circle"></i>
+                    <span>帮助</span>
                 </li>
             </ul>
         </div>
@@ -421,6 +429,53 @@
                     </div>
                 </div>
 
+                <!-- 工程管理模块 -->
+                <div id="project-management" class="module">
+                    <h2><i class="fas fa-project-diagram"></i> 工程管理</h2>
+
+                    <div class="search-bar">
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label>工程名称/描述</label>
+                                <input type="text" id="project-search" class="form-control" placeholder="输入工程名称或描述">
+                            </div>
+                            <button class="btn btn-primary" onclick="searchProjects()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-success" onclick="showAddProjectModal()">
+                                <i class="fas fa-plus"></i> 新建工程
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>工程列表</span>
+                            <span class="badge badge-info" id="project-count">共 0 个工程</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>工程名称</th>
+                                            <th>描述</th>
+                                            <th>包含信号数</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="project-table-body">
+                                        <!-- 动态加载工程数据 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 设置模块 -->
                 <div id="settings-management" class="module">
                     <h2><i class="fas fa-cog"></i> 系统设置</h2>
@@ -574,6 +629,37 @@
                                     <div>新增信号：温度传感器1</div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 帮助模块 -->
+                <div id="help-management" class="module">
+                    <h2><i class="fas fa-question-circle"></i> 帮助与支持</h2>
+
+                    <div class="card">
+                        <div class="card-header">公司信息</div>
+                        <div class="card-body">
+                            <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+                                <div style="text-align: center;">
+                                    <i class="fas fa-building fa-4x" style="color: #1890ff;"></i>
+                                    <h4>XX科技有限公司</h4>
+                                </div>
+                                <div>
+                                    <p><i class="fas fa-phone-alt"></i> 联系电话：010-12345678</p>
+                                    <p><i class="fas fa-envelope"></i> 邮箱：support@xxtech.com</p>
+                                    <p><i class="fas fa-map-marker-alt"></i> 地址：北京市朝阳区xx路xx号</p>
+                                    <p><i class="fas fa-clock"></i> 工作时间：周一至周五 9:00-18:00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">系统版本</div>
+                        <div class="card-body">
+                            <p>当前版本：v2.0.0</p>
+                            <p>最后更新：2025-03-06</p>
                         </div>
                     </div>
                 </div>
@@ -904,6 +990,61 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-danger" onclick="confirmDelete()">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工程添加/编辑模态框 -->
+    <div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="projectModalTitle">新建工程</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="projectForm">
+                        <input type="hidden" id="project-id">
+                        <div class="mb-3">
+                            <label for="project-name" class="form-label">工程名称 *</label>
+                            <input type="text" class="form-control" id="project-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="project-description" class="form-label">工程描述</label>
+                            <textarea class="form-control" id="project-description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">选择包含的信号</label>
+                            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                <div id="signal-checkbox-list">
+                                    <!-- 动态生成信号复选框 -->
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProject()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工程详情模态框 -->
+    <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">工程详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="project-detail-content"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                 </div>
             </div>
         </div>

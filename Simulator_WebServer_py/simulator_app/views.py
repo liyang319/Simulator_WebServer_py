@@ -2,10 +2,10 @@
 from django.shortcuts import render
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Cabinet, Master, Slave, Module, Signal
+from .models import Cabinet, Master, Slave, Module, Signal, Project
 from .serializers import (
     CabinetSerializer, MasterSerializer, SlaveSerializer,
-    ModuleSerializer, SignalSerializer
+    ModuleSerializer, SignalSerializer, ProjectSerializer
 )
 
 # ====== API 视图集（步骤四）======
@@ -43,6 +43,12 @@ class SignalViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['cabinet_id', 'master_id', 'slave_id', 'module_id']
     search_fields = ['code', 'name', 'type']
+
+class ProjectViewSet(viewsets.ModelViewSet):
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'description']
 
 # ====== 前端页面视图（步骤六）======
 

@@ -109,6 +109,18 @@ class Signal(models.Model):
         return f"{self.code} - {self.name}"
 
 
+class Project(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)  # 保持与前端的 ID 生成方式一致
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    signals = models.ManyToManyField('Signal', related_name='projects', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
 from django.db import models
 
 # Create your models here.

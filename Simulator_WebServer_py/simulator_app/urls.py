@@ -10,6 +10,7 @@ router.register(r'masters', views.MasterViewSet)
 router.register(r'slaves', views.SlaveViewSet)
 router.register(r'modules', views.ModuleViewSet)
 router.register(r'signals', views.SignalViewSet)
+router.register(r'projects', views.ProjectViewSet)
 
 urlpatterns = [
     # API 前缀
