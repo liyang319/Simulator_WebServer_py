@@ -485,3 +485,10 @@ body {
         grid-template-columns: 1fr 1fr 1fr 1fr !important;
     }
 }
+
+#project-management .table th:first-child,
+#project-management .table td:first-child {
+    width: auto;          /* 取消固定宽度 */
+    min-width: 120px;     /* 设置最小宽度，避免过窄 */
+    text-align: left;     /* 左对齐（可选） */
+}
