@@ -2,6 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .views import publish_mqtt
 
 # API 路由（使用 DRF 路由器）
 router = DefaultRouter()
@@ -18,4 +19,5 @@ urlpatterns = [
 
     # 前端页面（根路径）
     path('management/', views.management_view, name='management'),
+    path('api/publish-mqtt/', publish_mqtt, name='publish_mqtt'),
 ]

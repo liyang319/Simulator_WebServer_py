@@ -32,3 +32,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = '__all__'
+
+class MqttPublishSerializer(serializers.Serializer):
+    project_id = serializers.CharField(required=True)
+    action = serializers.ChoiceField(choices=['start', 'view'], required=True)

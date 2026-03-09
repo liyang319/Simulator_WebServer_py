@@ -1326,24 +1326,21 @@ function viewProject(id) {
 }
 
 // 启动工程
-function startProject(id) {
+async function startProject(id) {
     const project = currentData.projects.find(p => p.id === id);
     if (!project) return;
 
-    // 获取信号名称和模块名称
-    const signalNames = [];
-    const moduleNames = new Set();
-    project.signals.forEach(signalId => {
-        const sig = currentData.signals.find(s => s.id === signalId);
-        if (sig) {
-            signalNames.push(sig.name);
-            // 查找该信号所属的模块
-            const module = currentData.modules.find(m => m.id === sig.module);
-            if (module) moduleNames.add(module.name);
-        }
-    });
+    try {
+        const response = await apiRequest(`${API_BASE}/publish-mqtt/`, 'POST', {
+            project_id: id,
+            action: 'start'
+        });
 
-    alert(`启动工程：${project.name}\n包含信号：${signalNames.join(', ')}\n涉及模块：${Array.from(moduleNames).join(', ')}`);
+        alert(`启动工程：${project.name}\n已发送 ${response.sent} / ${response.total} 条 MQTT 消息`);
+    } catch (error) {
+        console.error('启动工程失败:', error);
+        alert('启动失败，请重试');
+    }
 }
 
 // 在删除功能中添加对工程的级联处理（可选，但工程独立，不需要级联）
