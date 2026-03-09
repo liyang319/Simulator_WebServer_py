@@ -124,3 +124,98 @@ def publish_mqtt(request):
         'total': len(pairs),
         'payload': payload,
     }, status=status.HTTP_200_OK)
+
+def get_module_default_config(module):
+    """根据模块类型返回默认配置字典"""
+    configs = {
+        'DI': {
+            "ioType": 1,
+            "slot": 1,
+            "orderNumber": 506101,
+            "inputLength": 2,
+            "outputLength": 0,
+            "parameters": [{"filter": 1, "invertByte1": 0, "invertByte2": 0}]
+        },
+        'DO': {
+            "ioType": 2,
+            "slot": 2,
+            "orderNumber": 506102,
+            "inputLength": 0,
+            "outputLength": 2,
+            "parameters": [{"enableOutputPresetValue": 0, "presentByte1": 0, "presentByte2": 0}]
+        },
+        'AI': {
+            "ioType": 12,
+            "slot": 4,
+            "orderNumber": 506112,
+            "inputLength": 18,
+            "outputLength": 0,
+            "parameters": [{"mode": 2, "singleOrDifferential": 1, "filter": 0}] * 8
+        },
+        'AO': {
+            "ioType": 13,
+            "slot": 3,
+            "orderNumber": 506113,
+            "inputLength": 8,
+            "outputLength": 16,
+            "parameters": [{"mode": 1, "range": 0, "current": 0}] * 8
+        },
+    }
+    return configs.get(module.type, {})
+
+@api_view(['POST'])
+def deploy_master_config(request, master_id):
+    """下发指定主站下所有从站及模块的配置"""
+    try:
+        master = Master.objects.get(id=master_id)
+    except Master.DoesNotExist:
+        return Response({'error': 'Master not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    cabinet_id = master.cabinet_id
+    slaves = master.slaves.all()
+    if not slaves:
+        return Response({'warning': 'No slaves under this master'}, status=status.HTTP_200_OK)
+
+    # 构建配置数据
+    config_data = {
+        'master': {
+            'id': master.id,
+            'code': master.code,
+            'name': master.name,
+            'ip': master.ip,
+            'port': master.port,
+        },
+        'slaves': []
+    }
+
+    for slave in slaves:
+        slave_data = {
+            'id': slave.id,
+            'code': slave.code,
+            'name': slave.name,
+            'address': slave.address,
+            'protocol': slave.protocol,
+            'modules': []
+        }
+        for module in slave.modules.all():
+            module_data = {
+                'id': module.id,
+                'code': module.code,
+                'name': module.name,
+                'type': module.type,
+                'channels': module.channels,
+                'config': get_module_default_config(module)  # 动态生成配置
+            }
+            slave_data['modules'].append(module_data)
+        config_data['slaves'].append(slave_data)
+
+    # 通过 MQTT 发布
+    topic = f"simulator/command/{cabinet_id}/{master_id}"
+    if mqtt_client.publish_message(topic, config_data):
+        return Response({
+            'success': True,
+            'message': 'Configuration deployed',
+            'topic': topic
+        })
+    else:
+        return Response({'error': 'MQTT publish failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

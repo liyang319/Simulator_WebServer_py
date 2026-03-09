@@ -420,6 +420,9 @@ function refreshMasterView() {
                 <button class="btn btn-sm" style="background: #fff2e8;" onclick="confirmDeleteItem('master', '${master.id}', '${master.name}')">
                     <i class="fas fa-trash"></i> 删除
                 </button>
+                <button class="btn btn-sm" style="background: #f6ffed;" onclick="deployMasterConfig('${master.id}')">
+                    <i class="fas fa-download"></i> 配置
+                </button>
             </td>
         `;
         tbody.appendChild(row);
@@ -1408,5 +1411,15 @@ async function confirmDelete() {
     } catch (error) {
         console.error('删除失败:', error);
         alert('删除失败，请重试');
+    }
+}
+
+async function deployMasterConfig(masterId) {
+    try {
+        const response = await apiRequest(`${API_BASE}/masters/${masterId}/deploy-config/`, 'POST');
+        alert(`配置下发成功，主题：${response.topic}`);
+    } catch (error) {
+        console.error('下发配置失败:', error);
+        alert('下发配置失败，请重试');
     }
 }
