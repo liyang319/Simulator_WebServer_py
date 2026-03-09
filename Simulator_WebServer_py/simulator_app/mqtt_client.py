@@ -1,4 +1,4 @@
-# rfid_app/mqtt_client.py
+# simulator/mqtt_client.py
 import paho.mqtt.client as mqtt
 import json
 import logging
@@ -91,76 +91,11 @@ class SimpleMQTTClient:
         except Exception as e:
             logger.error(f"❌ 处理批量标签数据错误: {e}")
 
-    def process_single_tag(self, device_id: str, tag_data: dict, data_type: str):
-        """处理单个标签数据"""
-        try:
-            # 转换时间格式
-            timestamp_str = tag_data.get('timestamp')
-            if timestamp_str:
-                try:
-                    from datetime import datetime
-                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                    timestamp = timezone.make_aware(timestamp)
-                except ValueError:
-                    timestamp = timezone.now()
-            else:
-                timestamp = timezone.now()
 
-            # 保存到数据库
-            self.save_rfid_data(device_id, tag_data, timestamp, data_type)
-            return True
-
-        except Exception as e:
-            logger.error(f"❌ 处理单个标签错误: {e}")
-            return False
-
-    def handle_rfid_data(self, topic: str, data: dict):
-        """处理RFID数据"""
-        try:
-            # 提取设备ID
-            device_id = self.extract_device_id(topic) or data.get('reader_id', 'unknown')
-
-            # 保存到数据库
-            self.save_rfid_data(device_id, data, timezone.now(), 'single')
-
-            # 更新设备状态
-            self.update_device_status(device_id, 'online', data)
-
-            logger.info(f"🏷️ 处理RFID数据: {data.get('tag_id', 'unknown')} - 设备: {device_id}")
-
-        except Exception as e:
-            logger.error(f"❌ 处理RFID数据错误: {e}")
-
-    def handle_device_status(self, topic: str, data: dict):
-        """处理设备状态"""
-        try:
-            device_id = self.extract_device_id(topic) or data.get('device_id', 'unknown')
-            status = data.get('status', 'online')
-
-            self.update_device_status(device_id, status, data)
-            logger.info(f"📊 设备状态更新: {device_id} - {status}")
-
-        except Exception as e:
-            logger.error(f"❌ 处理设备状态错误: {e}")
-
-    def save_rfid_data(self, device_id: str, data: dict, timestamp, data_type='single'):
-        """保存RFID数据到数据库"""
-        try:
-            print('save_rfid_data')
-
-        except Exception as e:
-            logger.error(f"❌ 保存RFID数据错误: {e}")
-
-    def update_device_status(self, device_id: str, status: str, data: dict):
-        """更新设备状态"""
-        try:
-            print('update_device_status')
-        except Exception as e:
-            logger.error(f"❌ 更新设备状态错误: {e}")
 
     def store_message(self, topic: str, data: dict):
         """存储消息用于页面显示"""
-        message_type = 'batch_tags' if data.get('command') == 'report_tags' else 'rfid_data'
+        message_type = 'batch_tags' if data.get('command') == 'report_tags' else 'simulator_data'
 
         message = {
             'id': self.message_count,
@@ -217,19 +152,6 @@ class SimpleMQTTClient:
                 logger.error(f"❌ 发布消息错误: {e}")
                 return False
         return False
-
-    def send_command(self, device_id: str, command: str, parameters: dict = None):
-        """发送命令到设备"""
-        command_msg = {
-            'command': command,
-            'command_id': f"web_cmd_{int(time.time() * 1000)}",
-            'parameters': parameters or {},
-            'timestamp': timezone.now().isoformat(),
-            'sent_by': 'web_interface'
-        }
-
-        topic = f"rfid/{device_id}/command"
-        return self.publish_message(topic, command_msg)
 
     def connect(self):
         """连接MQTT Broker"""
