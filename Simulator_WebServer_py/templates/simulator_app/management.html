@@ -857,20 +857,16 @@
                         </div>
                         <div class="mb-3">
                             <label for="module-type" class="form-label">模块类型 *</label>
-                            <select class="form-control" id="module-type" required>
-                                <option value="DI">数字量输入(DI)</option>
-                                <option value="DO">数字量输出(DO)</option>
-                                <option value="AI">模拟量输入(AI)</option>
-                                <option value="AO">模拟量输出(AO)</option>
-                                <option value="RTD">温度(RTD)</option>
-                                <option value="TC">热电偶(TC)</option>
-                                <option value="COMM">通信模块</option>
+                            <select class="form-control" id="module-type" required onchange="onModuleTypeChange()">
+                                <option value="">请选择类型</option>
+                                <option value="16DI">16DI</option>
+                                <option value="16DO">16DO</option>
+                                <option value="08AI">08AI</option>
+                                <option value="08AO">08AO</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="module-channels" class="form-label">通道数 *</label>
-                            <input type="number" class="form-control" id="module-channels" required min="1" max="32">
-                        </div>
+                        <!-- 动态配置区域 -->
+                        <div id="module-config-container" class="mb-3"></div>
                         <div class="mb-3">
                             <label for="module-description" class="form-label">描述</label>
                             <textarea class="form-control" id="module-description" rows="3"></textarea>

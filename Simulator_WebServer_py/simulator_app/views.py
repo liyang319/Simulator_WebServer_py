@@ -128,7 +128,7 @@ def publish_mqtt(request):
 def get_module_default_config(module):
     """根据模块类型返回默认配置字典"""
     configs = {
-        'DI': {
+        '16DI': {
             "ioType": 1,
             "slot": 1,
             "orderNumber": 506101,
@@ -136,7 +136,7 @@ def get_module_default_config(module):
             "outputLength": 0,
             "parameters": [{"filter": 1, "invertByte1": 0, "invertByte2": 0}]
         },
-        'DO': {
+        '16DO': {
             "ioType": 2,
             "slot": 2,
             "orderNumber": 506102,
@@ -144,7 +144,7 @@ def get_module_default_config(module):
             "outputLength": 2,
             "parameters": [{"enableOutputPresetValue": 0, "presentByte1": 0, "presentByte2": 0}]
         },
-        'AI': {
+        '08AI': {
             "ioType": 12,
             "slot": 4,
             "orderNumber": 506112,
@@ -152,7 +152,7 @@ def get_module_default_config(module):
             "outputLength": 0,
             "parameters": [{"mode": 2, "singleOrDifferential": 1, "filter": 0}] * 8
         },
-        'AO': {
+        '08AO': {
             "ioType": 13,
             "slot": 3,
             "orderNumber": 506113,

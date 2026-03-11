@@ -54,13 +54,10 @@ class Slave(models.Model):
 
 class Module(models.Model):
     TYPE_CHOICES = [
-        ('DI', '数字量输入(DI)'),
-        ('DO', '数字量输出(DO)'),
-        ('AI', '模拟量输入(AI)'),
-        ('AO', '模拟量输出(AO)'),
-        ('RTD', '温度(RTD)'),
-        ('TC', '热电偶(TC)'),
-        ('COMM', '通信模块'),
+        ('16DI', '16DI'),
+        ('16DO', '16DO'),
+        ('08AI', '08AI'),
+        ('08AO', '08AO'),
     ]
     id = models.CharField(max_length=50, primary_key=True)
     cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='modules')
@@ -70,6 +67,7 @@ class Module(models.Model):
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     channels = models.IntegerField()
+    parameters = models.JSONField(default=dict, blank=True)  # 新增字段
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, default='online')
     create_time = models.DateTimeField(auto_now_add=True)

@@ -801,6 +801,7 @@ function showAddModuleModal() {
     document.getElementById('moduleModalTitle').textContent = '新增模块';
     document.getElementById('module-id').value = '';
     document.getElementById('moduleForm').reset();
+    document.getElementById('module-config-container').innerHTML = '';
 
     const cabinetSelect = document.getElementById('module-cabinet');
     cabinetSelect.innerHTML = '<option value="">请选择机柜</option>';
@@ -812,6 +813,11 @@ function showAddModuleModal() {
     });
     document.getElementById('module-master').innerHTML = '<option value="">请选择主站</option>';
     document.getElementById('module-slave').innerHTML = '<option value="">请选择从站</option>';
+
+    const typeSelect = document.getElementById('module-type');
+    typeSelect.value = '';
+    onModuleTypeChange();
+
     new bootstrap.Modal(document.getElementById('moduleModal')).show();
 }
 
@@ -824,9 +830,9 @@ function editModule(id) {
     document.getElementById('module-code').value = module.code;
     document.getElementById('module-name').value = module.name;
     document.getElementById('module-type').value = module.type;
-    document.getElementById('module-channels').value = module.channels;
     document.getElementById('module-description').value = module.description || '';
 
+    // 填充机柜下拉框
     const cabinetSelect = document.getElementById('module-cabinet');
     cabinetSelect.innerHTML = '<option value="">请选择机柜</option>';
     currentData.cabinets.forEach(cabinet => {
@@ -839,12 +845,43 @@ function editModule(id) {
 
     updateModuleMasterSelect();
     setTimeout(() => {
-        document.getElementById('module-master').value = module.master;
+        document.getElementById('module-master').value = module.master || '';
         updateModuleSlaveSelect();
         setTimeout(() => {
-            document.getElementById('module-slave').value = module.slave;
+            document.getElementById('module-slave').value = module.slave || '';
         }, 100);
     }, 100);
+
+    // 根据类型生成UI并回填参数
+    onModuleTypeChange();
+    if (module.parameters) {
+        const params = module.parameters;
+        const type = module.type;
+        if (type === '16DI' && params.length > 0) {
+            const p = params[0];
+            document.getElementById('di-filter').value = p.filter;
+            document.getElementById('di-initial').value = `${p.invertByte1},${p.invertByte2}`;
+        } else if (type === '16DO' && params.length > 0) {
+            const p = params[0];
+            document.getElementById('do-enable-preset').checked = p.enableOutputPresetValue === 1;
+            document.getElementById('do-initial').value = `${p.presentByte1},${p.presentByte2}`;
+        } else if (type === '08AI' && params.length === 8) {
+            for (let i = 0; i < 8; i++) {
+                const p = params[i];
+                document.getElementById(`ai-mode-${i}`).value = p.mode;
+                document.getElementById(`ai-diff-${i}`).value = p.singleOrDifferential;
+                document.getElementById(`ai-filter-${i}`).value = p.filter;
+            }
+        } else if (type === '08AO' && params.length === 8) {
+            for (let i = 0; i < 8; i++) {
+                const p = params[i];
+                document.getElementById(`ao-mode-${i}`).value = p.mode;
+                document.getElementById(`ao-range-${i}`).value = p.range;
+                document.getElementById(`ao-current-${i}`).value = p.current;
+            }
+        }
+    }
+
     new bootstrap.Modal(document.getElementById('moduleModal')).show();
 }
 
@@ -856,19 +893,71 @@ async function saveModule() {
     const code = document.getElementById('module-code').value.trim();
     const name = document.getElementById('module-name').value.trim();
     const type = document.getElementById('module-type').value;
-    const channels = document.getElementById('module-channels').value.trim();
     const description = document.getElementById('module-description').value.trim();
 
-    if (!cabinet || !master || !slave || !code || !name || !type || !channels) {
+    if (!cabinet || !master || !slave || !code || !name || !type) {
         alert('所有带*的字段都不能为空！');
         return;
     }
 
-    const data = { cabinet, master, slave, code, name, type, channels: parseInt(channels), description };
-    if (id) {
-        data.id = id;  // 编辑时，将 id 放入 data
+    // 根据类型设置通道数（用于表格显示）
+    let channels = 0;
+    if (type === '16DI' || type === '16DO') channels = 16;
+    else if (type === '08AI' || type === '08AO') channels = 8;
+
+    // 收集参数
+    let parameters = [];
+    if (type === '16DI') {
+        const filter = parseFloat(document.getElementById('di-filter').value);
+        const initialStr = document.getElementById('di-initial').value.trim();
+        let invertByte1 = 0, invertByte2 = 0;
+        if (initialStr) {
+            const parts = initialStr.split(',').map(s => parseInt(s.trim(), 10));
+            invertByte1 = parts[0] || 0;
+            invertByte2 = parts[1] || 0;
+        }
+        parameters = [{ filter, invertByte1, invertByte2 }];
+    } else if (type === '16DO') {
+        const enable = document.getElementById('do-enable-preset').checked ? 1 : 0;
+        const initialStr = document.getElementById('do-initial').value.trim();
+        let presentByte1 = 0, presentByte2 = 0;
+        if (initialStr) {
+            const parts = initialStr.split(',').map(s => parseInt(s.trim(), 10));
+            presentByte1 = parts[0] || 0;
+            presentByte2 = parts[1] || 0;
+        }
+        parameters = [{ enableOutputPresetValue: enable, presentByte1, presentByte2 }];
+    } else if (type === '08AI') {
+        for (let i = 0; i < 8; i++) {
+            const mode = parseInt(document.getElementById(`ai-mode-${i}`).value, 10);
+            const diff = parseInt(document.getElementById(`ai-diff-${i}`).value, 10);
+            const filter = parseInt(document.getElementById(`ai-filter-${i}`).value, 10);
+            parameters.push({ mode, singleOrDifferential: diff, filter });
+        }
+    } else if (type === '08AO') {
+        for (let i = 0; i < 8; i++) {
+            const mode = parseInt(document.getElementById(`ao-mode-${i}`).value, 10);
+            const range = parseInt(document.getElementById(`ao-range-${i}`).value, 10);
+            const current = parseInt(document.getElementById(`ao-current-${i}`).value, 10);
+            parameters.push({ mode, range, current });
+        }
+    }
+
+    const data = {
+        cabinet,
+        master,
+        slave,
+        code,
+        name,
+        type,
+        channels,        // 添加通道数用于显示
+        description,
+        parameters       // 保存详细配置
+    };
+    if (!id) {
+        data.id = generateId();
     } else {
-        data.id = generateId();  // 新增时生成 id
+        data.id = id;
     }
 
     try {
@@ -1421,5 +1510,136 @@ async function deployMasterConfig(masterId) {
     } catch (error) {
         console.error('下发配置失败:', error);
         alert('下发配置失败，请重试');
+    }
+}
+
+function onModuleTypeChange() {
+    const type = document.getElementById('module-type').value;
+    const container = document.getElementById('module-config-container');
+    container.innerHTML = ''; // 清空
+
+    if (type === '16DI') {
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = `
+            <div class="col">
+                <label>滤波等级 (Enum)</label>
+                <select class="form-control" id="di-filter">
+                    <option value="0">0</option>
+                    <option value="0.5">0.5</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                </select>
+            </div>
+            <div class="col">
+                <label>初始值 (invertByte1,invertByte2)</label>
+                <input type="text" class="form-control" id="di-initial" placeholder="例如: 0,0">
+            </div>
+        `;
+        container.appendChild(div);
+    } else if (type === '16DO') {
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = `
+            <div class="col">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="do-enable-preset">
+                    <label class="form-check-label" for="do-enable-preset">允许输出设置</label>
+                </div>
+            </div>
+            <div class="col">
+                <label>初始值 (presentByte1,presentByte2)</label>
+                <input type="text" class="form-control" id="do-initial" placeholder="例如: 0,0">
+            </div>
+        `;
+        container.appendChild(div);
+    } else if (type === '08AI') {
+        const table = document.createElement('table');
+        table.className = 'table table-bordered';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>通道</th>
+                    <th>模式 (0-20)</th>
+                    <th>单端/差分</th>
+                    <th>滤波等级 (0-3)</th>
+                </tr>
+            </thead>
+            <tbody id="ai-config-rows"></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        for (let i = 0; i < 8; i++) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>通道 ${i+1}</td>
+                <td>
+                    <select class="form-control" id="ai-mode-${i}">
+                        ${Array.from({length: 21}, (_, j) => `<option value="${j}">${j}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control" id="ai-diff-${i}">
+                        <option value="0">单端</option>
+                        <option value="1">差分</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control" id="ai-filter-${i}">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+        container.appendChild(table);
+    } else if (type === '08AO') {
+        const table = document.createElement('table');
+        table.className = 'table table-bordered';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>通道</th>
+                    <th>模式 (0-7)</th>
+                    <th>范围</th>
+                    <th>限流 (mA)</th>
+                </tr>
+            </thead>
+            <tbody id="ao-config-rows"></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        for (let i = 0; i < 8; i++) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>通道 ${i+1}</td>
+                <td>
+                    <select class="form-control" id="ao-mode-${i}">
+                        ${Array.from({length: 8}, (_, j) => `<option value="${j}">${j}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control" id="ao-range-${i}">
+                        <option value="0">标准模式</option>
+                        <option value="1">超量程模式</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control" id="ao-current-${i}">
+                        <option value="8">8</option>
+                        <option value="16">16</option>
+                        <option value="24">24</option>
+                        <option value="32">32</option>
+                    </select>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+        container.appendChild(table);
     }
 }
