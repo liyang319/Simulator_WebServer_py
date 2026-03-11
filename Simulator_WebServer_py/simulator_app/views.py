@@ -165,52 +165,106 @@ def get_module_default_config(module):
 
 @api_view(['POST'])
 def deploy_master_config(request, master_id):
-    """下发指定主站下所有从站及模块的配置"""
+    """下发指定主站下所有从站及模块的配置（新格式）"""
     try:
         master = Master.objects.get(id=master_id)
     except Master.DoesNotExist:
         return Response({'error': 'Master not found'}, status=status.HTTP_404_NOT_FOUND)
 
     cabinet_id = master.cabinet_id
-    slaves = master.slaves.all()
+    slaves = master.slaves.all().order_by('address')  # 按地址排序作为位置参考
     if not slaves:
         return Response({'warning': 'No slaves under this master'}, status=status.HTTP_200_OK)
 
-    # 构建配置数据
+    # 构建完整的配置数据
     config_data = {
-        'master': {
-            'id': master.id,
-            'code': master.code,
-            'name': master.name,
-            'ip': master.ip,
-            'port': master.port,
-        },
-        'slaves': []
+        "version": "0.01",
+        "slaves": []
     }
 
     for slave in slaves:
+        # 根据从站名称推断类型和产品代码（实际可根据需要扩展）
+        slave_name = slave.name or slave.code
+        slave_type = "S1-EC20"
+        product_code = 701102003
+        if "M20" in slave_name.upper():
+            slave_type = "S1-M20"
+            product_code = 701102001
+        # 可在此添加更多推断逻辑
+
         slave_data = {
-            'id': slave.id,
-            'code': slave.code,
-            'name': slave.name,
-            'address': slave.address,
-            'protocol': slave.protocol,
-            'modules': []
+            "alias": 0,
+            "position": slave.address or 0,  # 从站地址作为位置
+            "slaveName": slave_name,
+            "slaveType": slave_type,
+            "vendorId": 2877,
+            "productCode": product_code,
+            "revision": 1,
+            "ioModules": []
         }
-        for module in slave.modules.all():
-            module_data = {
-                'id': module.id,
-                'code': module.code,
-                'name': module.name,
-                'type': module.type,
-                'channels': module.channels,
-                'config': get_module_default_config(module)  # 动态生成配置
+
+        # 获取该从站下的所有模块，按创建时间或ID排序作为槽位顺序
+        modules = slave.modules.all().order_by('id')
+        for idx, module in enumerate(modules, start=1):
+            # 根据模块类型映射 ioType
+            io_type_map = {
+                '16DI': 1,
+                '16DO': 2,
+                '08AI': 12,
+                '08AO': 13,
             }
-            slave_data['modules'].append(module_data)
-        config_data['slaves'].append(slave_data)
+            io_type = io_type_map.get(module.type, 0)
+
+            # 根据 ioType 获取订单号
+            order_map = {
+                1: 506101,
+                2: 506102,
+                12: 506112,
+                13: 506113,
+            }
+            order_number = order_map.get(io_type, 0)
+
+            # 根据 ioType 获取输入/输出长度
+            if io_type == 1:      # 16DI
+                input_len, output_len = 2, 0
+            elif io_type == 2:    # 16DO
+                input_len, output_len = 0, 2
+            elif io_type == 12:   # 08AI
+                input_len, output_len = 18, 0
+            elif io_type == 13:   # 08AO
+                input_len, output_len = 8, 16
+            else:
+                input_len, output_len = 0, 0
+
+            # 获取模块参数，如果未存储则使用默认值
+            parameters = module.parameters
+            if not parameters:
+                # 使用默认参数（可从 module_data.js 对应类获取）
+                if module.type == '16DI':
+                    parameters = [{"filter": 1, "invertByte1": 0, "invertByte2": 0}]
+                elif module.type == '16DO':
+                    parameters = [{"enableOutputPresetValue": 0, "presentByte1": 0, "presentByte2": 0}]
+                elif module.type == '08AI':
+                    parameters = [{"mode": 2, "singleOrDifferential": 1, "filter": 0}] * 8
+                elif module.type == '08AO':
+                    parameters = [{"mode": 1, "range": 0, "current": 0}] * 8
+                else:
+                    parameters = []
+
+            module_data = {
+                "ioType": io_type,
+                "slot": idx,  # 槽位从1开始顺序分配
+                "orderNumber": order_number,
+                "inputLength": input_len,
+                "outputLength": output_len,
+                "parameters": parameters
+            }
+            slave_data["ioModules"].append(module_data)
+
+        config_data["slaves"].append(slave_data)
 
     # 通过 MQTT 发布
-    topic = f"simulator/command/{cabinet_id}/{master_id}"
+    topic = f"simulator/command/{cabinet_id}/{master.id}"
     if mqtt_client.publish_message(topic, config_data):
         return Response({
             'success': True,
