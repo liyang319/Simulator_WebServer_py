@@ -172,30 +172,28 @@ def deploy_master_config(request, master_id):
         return Response({'error': 'Master not found'}, status=status.HTTP_404_NOT_FOUND)
 
     cabinet_id = master.cabinet_id
-    slaves = master.slaves.all().order_by('address')  # 按地址排序作为位置参考
+    slaves = master.slaves.all().order_by('id')  # 改为按 id 排序（或按 code）
     if not slaves:
         return Response({'warning': 'No slaves under this master'}, status=status.HTTP_200_OK)
 
-    # 构建完整的配置数据
     config_data = {
         "version": "0.01",
         "slaves": []
     }
 
-    for slave in slaves:
-        # 根据从站名称推断类型和产品代码（实际可根据需要扩展）
-        slave_name = slave.name or slave.code
-        slave_type = "S1-EC20"
-        product_code = 701102003
-        if "M20" in slave_name.upper():
-            slave_type = "S1-M20"
-            product_code = 701102001
-        # 可在此添加更多推断逻辑
+    for position, slave in enumerate(slaves):  # position 从0开始
+        # 根据从站类型推断产品代码（目前只有 S1-EC20，但保留逻辑）
+        if slave.slave_type == 'S1-EC20':
+            product_code = 701102003
+            slave_type = 'S1-EC20'
+        else:
+            product_code = 701102001  # 默认或备用
+            slave_type = 'S1-M20'
 
         slave_data = {
             "alias": 0,
-            "position": slave.address or 0,  # 从站地址作为位置
-            "slaveName": slave_name,
+            "position": position,
+            "slaveName": slave.name or slave.code,
             "slaveType": slave_type,
             "vendorId": 2877,
             "productCode": product_code,
@@ -203,9 +201,9 @@ def deploy_master_config(request, master_id):
             "ioModules": []
         }
 
-        # 获取该从站下的所有模块，按创建时间或ID排序作为槽位顺序
-        modules = slave.modules.all().order_by('id')
-        for idx, module in enumerate(modules, start=1):
+        # 获取该从站下的所有模块，按插槽（slot）排序
+        modules = slave.modules.all().order_by('slot')
+        for module in modules:
             # 根据模块类型映射 ioType
             io_type_map = {
                 '16DI': 1,
@@ -239,7 +237,6 @@ def deploy_master_config(request, master_id):
             # 获取模块参数，如果未存储则使用默认值
             parameters = module.parameters
             if not parameters:
-                # 使用默认参数（可从 module_data.js 对应类获取）
                 if module.type == '16DI':
                     parameters = [{"filter": 1, "invertByte1": 0, "invertByte2": 0}]
                 elif module.type == '16DO':
@@ -253,7 +250,7 @@ def deploy_master_config(request, master_id):
 
             module_data = {
                 "ioType": io_type,
-                "slot": idx,  # 槽位从1开始顺序分配
+                "slot": module.slot or 1,  # 使用模块的 slot 字段
                 "orderNumber": order_number,
                 "inputLength": input_len,
                 "outputLength": output_len,

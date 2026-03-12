@@ -31,19 +31,23 @@ class Master(models.Model):
 
 
 class Slave(models.Model):
-    PROTOCOL_CHOICES = [
-        ('MODBUS_RTU', 'MODBUS RTU'),
-        ('MODBUS_TCP', 'MODBUS TCP'),
-        ('PROFIBUS', 'PROFIBUS'),
-        ('PROFINET', 'PROFINET'),
+    # PROTOCOL_CHOICES = [
+    #     ('MODBUS_RTU', 'MODBUS RTU'),
+    #     ('MODBUS_TCP', 'MODBUS TCP'),
+    #     ('PROFIBUS', 'PROFIBUS'),
+    #     ('PROFINET', 'PROFINET'),
+    # ]
+    SLAVE_TYPE_CHOICES = [
+        ('S1-EC20', 'S1-EC20'),
     ]
+    slave_type = models.CharField(max_length=50, choices=SLAVE_TYPE_CHOICES, default='S1-EC20')
     id = models.CharField(max_length=50, primary_key=True)
     cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='slaves')
     master = models.ForeignKey(Master, on_delete=models.CASCADE, related_name='slaves')
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
-    address = models.IntegerField()
-    protocol = models.CharField(max_length=20, choices=PROTOCOL_CHOICES)
+    # address = models.IntegerField()
+    # protocol = models.CharField(max_length=20, choices=PROTOCOL_CHOICES)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, default='online')
     create_time = models.DateTimeField(auto_now_add=True)
@@ -66,6 +70,7 @@ class Module(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    slot = models.IntegerField(default=1)  # 默认插槽1，范围1-16
     channels = models.IntegerField()
     parameters = models.JSONField(default=dict, blank=True)  # 新增字段
     description = models.TextField(blank=True)
