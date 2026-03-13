@@ -833,7 +833,7 @@ function editModule(id) {
     document.getElementById('module-code').value = module.code;
     document.getElementById('module-name').value = module.name;
     document.getElementById('module-type').value = module.type;
-    document.getElementById('module-slot').value = module.slot || 1; // 回填
+    document.getElementById('module-slot').value = module.slot || 1;
     document.getElementById('module-description').value = module.description || '';
 
     // 填充机柜下拉框
@@ -847,6 +847,7 @@ function editModule(id) {
         cabinetSelect.appendChild(option);
     });
 
+    // 更新主站和从站下拉框
     updateModuleMasterSelect();
     setTimeout(() => {
         document.getElementById('module-master').value = module.master || '';
@@ -856,35 +857,45 @@ function editModule(id) {
         }, 100);
     }, 100);
 
-    // 根据类型生成UI并回填参数
+    // 根据类型生成UI
     onModuleTypeChange();
-    if (module.parameters) {
-        const params = module.parameters;
-        const type = module.type;
-        if (type === '16DI' && params.length > 0) {
-            const p = params[0];
-            document.getElementById('di-filter').value = p.filter;
-            document.getElementById('di-initial').value = `${p.invertByte1},${p.invertByte2}`;
-        } else if (type === '16DO' && params.length > 0) {
-            const p = params[0];
-            document.getElementById('do-enable-preset').checked = p.enableOutputPresetValue === 1;
-            document.getElementById('do-initial').value = `${p.presentByte1},${p.presentByte2}`;
-        } else if (type === '08AI' && params.length === 8) {
-            for (let i = 0; i < 8; i++) {
-                const p = params[i];
-                document.getElementById(`ai-mode-${i}`).value = p.mode;
-                document.getElementById(`ai-diff-${i}`).value = p.singleOrDifferential;
-                document.getElementById(`ai-filter-${i}`).value = p.filter;
-            }
-        } else if (type === '08AO' && params.length === 8) {
-            for (let i = 0; i < 8; i++) {
-                const p = params[i];
-                document.getElementById(`ao-mode-${i}`).value = p.mode;
-                document.getElementById(`ao-range-${i}`).value = p.range;
-                document.getElementById(`ao-current-${i}`).value = p.current;
+
+    // 回填参数（需要等待UI生成完成）
+    setTimeout(() => {
+        if (module.parameters && module.parameters.length > 0) {
+            const params = module.parameters;
+            const type = module.type;
+            if (type === '16DI') {
+                const p = params[0];
+                document.getElementById('di-filter').value = p.filter;
+                document.getElementById('di-initial').value = `${p.invertByte1},${p.invertByte2}`;
+            } else if (type === '16DO') {
+                const p = params[0];
+                document.getElementById('do-enable-preset').checked = p.enableOutputPresetValue === 1;
+                document.getElementById('do-initial').value = `${p.presentByte1},${p.presentByte2}`;
+            } else if (type === '08AI' && params.length === 8) {
+                for (let i = 0; i < 8; i++) {
+                    const p = params[i];
+                    const modeSelect = document.getElementById(`ai-mode-${i}`);
+                    const diffSelect = document.getElementById(`ai-diff-${i}`);
+                    const filterSelect = document.getElementById(`ai-filter-${i}`);
+                    if (modeSelect) modeSelect.value = p.mode;
+                    if (diffSelect) diffSelect.value = p.singleOrDifferential;
+                    if (filterSelect) filterSelect.value = p.filter;
+                }
+            } else if (type === '08AO' && params.length === 8) {
+                for (let i = 0; i < 8; i++) {
+                    const p = params[i];
+                    const modeSelect = document.getElementById(`ao-mode-${i}`);
+                    const rangeSelect = document.getElementById(`ao-range-${i}`);
+                    const currentSelect = document.getElementById(`ao-current-${i}`);
+                    if (modeSelect) modeSelect.value = p.mode;
+                    if (rangeSelect) rangeSelect.value = p.range;
+                    if (currentSelect) currentSelect.value = p.current;
+                }
             }
         }
-    }
+    }, 200); // 给UI渲染留出时间
 
     new bootstrap.Modal(document.getElementById('moduleModal')).show();
 }
@@ -897,7 +908,7 @@ async function saveModule() {
     const code = document.getElementById('module-code').value.trim();
     const name = document.getElementById('module-name').value.trim();
     const type = document.getElementById('module-type').value;
-    const slot = parseInt(document.getElementById('module-slot').value, 10); // 新增
+    const slot = parseInt(document.getElementById('module-slot').value, 10);
     const description = document.getElementById('module-description').value.trim();
 
     if (!cabinet || !master || !slave || !code || !name || !type || !slot) {
@@ -905,14 +916,51 @@ async function saveModule() {
         return;
     }
 
-    // 根据类型设置通道数（用于显示，保留）
+    // 通道数
     let channels = 0;
     if (type === '16DI' || type === '16DO') channels = 16;
     else if (type === '08AI' || type === '08AO') channels = 8;
 
-    // 收集参数（与之前相同）
+    // 收集参数
     let parameters = [];
-    // ... 参数收集代码保持不变 ...
+
+    if (type === '16DI') {
+        const filter = parseFloat(document.getElementById('di-filter').value);
+        const initialStr = document.getElementById('di-initial').value.trim();
+        let invertByte1 = 0, invertByte2 = 0;
+        if (initialStr) {
+            const parts = initialStr.split(',').map(s => parseInt(s.trim(), 10));
+            invertByte1 = parts[0] || 0;
+            invertByte2 = parts[1] || 0;
+        }
+        parameters = [{ filter, invertByte1, invertByte2 }];
+    } else if (type === '16DO') {
+        const enable = document.getElementById('do-enable-preset').checked ? 1 : 0;
+        const initialStr = document.getElementById('do-initial').value.trim();
+        let presentByte1 = 0, presentByte2 = 0;
+        if (initialStr) {
+            const parts = initialStr.split(',').map(s => parseInt(s.trim(), 10));
+            presentByte1 = parts[0] || 0;
+            presentByte2 = parts[1] || 0;
+        }
+        parameters = [{ enableOutputPresetValue: enable, presentByte1, presentByte2 }];
+    } else if (type === '08AI') {
+        for (let i = 0; i < 8; i++) {
+            const mode = parseInt(document.getElementById(`ai-mode-${i}`).value, 10);
+            const diff = parseInt(document.getElementById(`ai-diff-${i}`).value, 10);
+            const filter = parseInt(document.getElementById(`ai-filter-${i}`).value, 10);
+            parameters.push({ mode, singleOrDifferential: diff, filter });
+        }
+    } else if (type === '08AO') {
+        for (let i = 0; i < 8; i++) {
+            const mode = parseInt(document.getElementById(`ao-mode-${i}`).value, 10);
+            const range = parseInt(document.getElementById(`ao-range-${i}`).value, 10);
+            const current = parseInt(document.getElementById(`ao-current-${i}`).value, 10);
+            parameters.push({ mode, range, current });
+        }
+    }
+
+    console.log('Parameters collected:', parameters);
 
     const data = {
         cabinet,
@@ -921,16 +969,18 @@ async function saveModule() {
         code,
         name,
         type,
-        slot,           // 新增
+        slot,
         channels,
         description,
-        parameters
+        parameters  // 直接传递数组
     };
     if (!id) {
         data.id = generateId();
     } else {
         data.id = id;
     }
+
+    console.log('Full data to send:', JSON.stringify(data, null, 2));
 
     try {
         if (id) {

@@ -236,6 +236,7 @@ def deploy_master_config(request, master_id):
 
             # 获取模块参数，如果未存储则使用默认值
             parameters = module.parameters
+            print(f"Module {module.id} parameters: {module.parameters}")
             if not parameters:
                 if module.type == '16DI':
                     parameters = [{"filter": 1, "invertByte1": 0, "invertByte2": 0}]
