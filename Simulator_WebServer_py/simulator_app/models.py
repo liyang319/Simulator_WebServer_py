@@ -39,6 +39,7 @@ class Slave(models.Model):
     # ]
     SLAVE_TYPE_CHOICES = [
         ('S1-EC20', 'S1-EC20'),
+        ('S1-M20', 'S1-M20'),
     ]
     slave_type = models.CharField(max_length=50, choices=SLAVE_TYPE_CHOICES, default='S1-EC20')
     id = models.CharField(max_length=50, primary_key=True)
