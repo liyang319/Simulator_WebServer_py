@@ -1595,10 +1595,26 @@ function renderInputModuleGroup(module, signals, container) {
 
     signals.forEach(signal => {
         const row = document.createElement('tr');
-        let valueType = '';
-        if (signal.type === '16DI' || signal.type === '16DO') valueType = '布尔';
-        else if (signal.type === '08AI' || signal.type === '08AO') valueType = '模拟量';
-        else valueType = signal.type;
+        // 数值类型固定为 "Bit"
+        const valueType = 'Bit';
+
+        // 设定数值下拉框，默认值取自 signal.setpoint，若无则为 0，并禁用
+        const setpointSelect = document.createElement('select');
+        setpointSelect.className = 'form-control form-control-sm setpoint-input';
+        setpointSelect.disabled = true;  // 输入信号禁用
+        setpointSelect.dataset.signalId = signal.id;
+
+        const option0 = document.createElement('option');
+        option0.value = '0';
+        option0.textContent = '0';
+        option0.selected = (signal.setpoint === 0 || signal.setpoint === null || signal.setpoint === undefined);
+        const option1 = document.createElement('option');
+        option1.value = '1';
+        option1.textContent = '1';
+        option1.selected = (signal.setpoint === 1);
+
+        setpointSelect.appendChild(option0);
+        setpointSelect.appendChild(option1);
 
         row.innerHTML = `
             <td style="text-align: center;">
@@ -1608,20 +1624,19 @@ function renderInputModuleGroup(module, signals, container) {
             <td>${signal.type}</td>
             <td>${signal.name}</td>
             <td>${valueType}</td>
-            <td>
-                <input type="number" class="form-control form-control-sm setpoint-input"
-                       data-signal-id="${signal.id}" value="${signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : ''}"
-                       step="any" style="width: 100px;">
-            </td>
+            <td></td>
             <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
         `;
+        // 将设定数值列（第6个 td）替换为下拉框
+        const setpointTd = row.cells[5];
+        setpointTd.appendChild(setpointSelect);
+
         tbody.appendChild(row);
     });
 
     container.appendChild(table);
 }
 
-// 渲染一个模块的所有信号为一个表格（输出信号专用，无信号类型列）
 function renderOutputModuleGroup(module, signals, container) {
     const moduleTitle = document.createElement('div');
     moduleTitle.className = 'bg-success bg-opacity-10 p-2 mb-2 fw-bold';
@@ -1646,16 +1661,28 @@ function renderOutputModuleGroup(module, signals, container) {
     `;
     const tbody = table.querySelector('tbody');
 
-    // 按通道号排序
     signals.sort((a, b) => a.channel - b.channel);
 
     signals.forEach(signal => {
         const row = document.createElement('tr');
-        // 数值类型映射
-        let valueType = '';
-        if (signal.type === '16DI' || signal.type === '16DO') valueType = '布尔';
-        else if (signal.type === '08AI' || signal.type === '08AO') valueType = '模拟量';
-        else valueType = signal.type;
+        const valueType = 'Bit';
+
+        // 设定数值下拉框，可编辑
+        const setpointSelect = document.createElement('select');
+        setpointSelect.className = 'form-control form-control-sm setpoint-input';
+        setpointSelect.dataset.signalId = signal.id;
+
+        const option0 = document.createElement('option');
+        option0.value = '0';
+        option0.textContent = '0';
+        option0.selected = (signal.setpoint === 0 || signal.setpoint === null || signal.setpoint === undefined);
+        const option1 = document.createElement('option');
+        option1.value = '1';
+        option1.textContent = '1';
+        option1.selected = (signal.setpoint === 1);
+
+        setpointSelect.appendChild(option0);
+        setpointSelect.appendChild(option1);
 
         row.innerHTML = `
             <td style="text-align: center;">
@@ -1665,13 +1692,12 @@ function renderOutputModuleGroup(module, signals, container) {
             <td>${signal.type}</td>
             <td>${signal.name}</td>
             <td>${valueType}</td>
-            <td>
-                <input type="number" class="form-control form-control-sm setpoint-input"
-                       data-signal-id="${signal.id}" value="${signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : ''}"
-                       step="any" style="width: 100px;">
-            </td>
+            <td></td>
             <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
         `;
+        const setpointTd = row.cells[5];
+        setpointTd.appendChild(setpointSelect);
+
         tbody.appendChild(row);
     });
 
