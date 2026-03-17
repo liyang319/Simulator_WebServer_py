@@ -1568,13 +1568,11 @@ function groupSignalsByModule(signals) {
 
 // 渲染一个模块的所有信号为一个表格（输入信号专用，包含信号类型列）
 function renderInputModuleGroup(module, signals, container) {
-    // 模块标题行（浅绿色背景）
     const moduleTitle = document.createElement('div');
     moduleTitle.className = 'bg-success bg-opacity-10 p-2 mb-2 fw-bold';
     moduleTitle.textContent = `${module.code} - ${module.name} (${module.type})`;
     container.appendChild(moduleTitle);
 
-    // 创建表格，增加选择列
     const table = document.createElement('table');
     table.className = 'table table-sm table-bordered mb-4';
     table.innerHTML = `
@@ -1593,12 +1591,10 @@ function renderInputModuleGroup(module, signals, container) {
     `;
     const tbody = table.querySelector('tbody');
 
-    // 按通道号排序
     signals.sort((a, b) => a.channel - b.channel);
 
     signals.forEach(signal => {
         const row = document.createElement('tr');
-        // 数值类型映射
         let valueType = '';
         if (signal.type === '16DI' || signal.type === '16DO') valueType = '布尔';
         else if (signal.type === '08AI' || signal.type === '08AO') valueType = '模拟量';
@@ -1639,6 +1635,7 @@ function renderOutputModuleGroup(module, signals, container) {
             <tr>
                 <th style="width: 40px;">选择</th>
                 <th>信号编号</th>
+                <th>信号类型</th>
                 <th>变量名称</th>
                 <th>数值类型</th>
                 <th>设定数值</th>
@@ -1649,10 +1646,12 @@ function renderOutputModuleGroup(module, signals, container) {
     `;
     const tbody = table.querySelector('tbody');
 
+    // 按通道号排序
     signals.sort((a, b) => a.channel - b.channel);
 
     signals.forEach(signal => {
         const row = document.createElement('tr');
+        // 数值类型映射
         let valueType = '';
         if (signal.type === '16DI' || signal.type === '16DO') valueType = '布尔';
         else if (signal.type === '08AI' || signal.type === '08AO') valueType = '模拟量';
@@ -1663,6 +1662,7 @@ function renderOutputModuleGroup(module, signals, container) {
                 <input type="checkbox" class="signal-checkbox" data-signal-id="${signal.id}">
             </td>
             <td>${signal.code}</td>
+            <td>${signal.type}</td>
             <td>${signal.name}</td>
             <td>${valueType}</td>
             <td>
