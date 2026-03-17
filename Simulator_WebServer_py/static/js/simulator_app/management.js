@@ -1667,22 +1667,32 @@ function renderOutputModuleGroup(module, signals, container) {
         const row = document.createElement('tr');
         const valueType = 'Bit';
 
-        // 设定数值下拉框，可编辑
-        const setpointSelect = document.createElement('select');
-        setpointSelect.className = 'form-control form-control-sm setpoint-input';
-        setpointSelect.dataset.signalId = signal.id;
-
-        const option0 = document.createElement('option');
-        option0.value = '0';
-        option0.textContent = '0';
-        option0.selected = (signal.setpoint === 0 || signal.setpoint === null || signal.setpoint === undefined);
-        const option1 = document.createElement('option');
-        option1.value = '1';
-        option1.textContent = '1';
-        option1.selected = (signal.setpoint === 1);
-
-        setpointSelect.appendChild(option0);
-        setpointSelect.appendChild(option1);
+        let setpointControl;
+        if (module.type === '08AO') {
+            // AO模块：数字输入框，默认值为0
+            setpointControl = document.createElement('input');
+            setpointControl.type = 'number';
+            setpointControl.className = 'form-control form-control-sm setpoint-input';
+            setpointControl.step = 'any';
+            // 修改：如果 setpoint 不存在，默认显示0
+            setpointControl.value = signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : 0;
+            setpointControl.style.width = '100px';
+        } else {
+            // DO模块：下拉框 0/1
+            setpointControl = document.createElement('select');
+            setpointControl.className = 'form-control form-control-sm setpoint-input';
+            const option0 = document.createElement('option');
+            option0.value = '0';
+            option0.textContent = '0';
+            option0.selected = (signal.setpoint === 0 || signal.setpoint === null || signal.setpoint === undefined);
+            const option1 = document.createElement('option');
+            option1.value = '1';
+            option1.textContent = '1';
+            option1.selected = (signal.setpoint === 1);
+            setpointControl.appendChild(option0);
+            setpointControl.appendChild(option1);
+        }
+        setpointControl.dataset.signalId = signal.id;
 
         row.innerHTML = `
             <td style="text-align: center;">
@@ -1696,7 +1706,7 @@ function renderOutputModuleGroup(module, signals, container) {
             <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
         `;
         const setpointTd = row.cells[5];
-        setpointTd.appendChild(setpointSelect);
+        setpointTd.appendChild(setpointControl);
 
         tbody.appendChild(row);
     });
