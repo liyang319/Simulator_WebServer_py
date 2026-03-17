@@ -92,6 +92,10 @@ class Signal(models.Model):
         ('TC', '热电偶(TC)'),
         ('PO', '脉冲输出(PO)'),
     ]
+    CATEGORY_CHOICES = [
+        ('static', '静态信号'),
+        ('dynamic', '动态信号'),
+    ]
     id = models.CharField(max_length=50, primary_key=True)
     cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name='signals')
     master = models.ForeignKey(Master, on_delete=models.CASCADE, related_name='signals')
@@ -108,6 +112,16 @@ class Signal(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, default='online')
     create_time = models.DateTimeField(auto_now_add=True)
+    setpoint = models.FloatField(null=True, blank=True)
+    category = models.CharField(
+        max_length=10,
+        choices=CATEGORY_CHOICES,
+        default='static',
+        help_text='信号类别：静态信号或动态信号'
+    )
+
+    class Meta:
+        unique_together = ['module', 'channel']  # 确保每个模块的每个通道只有一个信号记录
 
     def __str__(self):
         return f"{self.code} - {self.name}"

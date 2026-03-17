@@ -1044,100 +1044,6 @@ function updateSignalModuleSelect() {
     }
 }
 
-function refreshSignalView() {
-    const searchTerm = document.getElementById('signal-search').value.toLowerCase();
-    const cabinetId = document.getElementById('signal-cabinet-filter').value;
-    const masterId = document.getElementById('signal-master-filter').value;
-    const slaveId = document.getElementById('signal-slave-filter').value;
-    const moduleId = document.getElementById('signal-module-filter').value;
-
-    let filteredSignals = currentData.signals;
-    if (searchTerm) {
-        filteredSignals = filteredSignals.filter(s =>
-            s.code.toLowerCase().includes(searchTerm) ||
-            s.name.toLowerCase().includes(searchTerm)
-        );
-    }
-    if (cabinetId) filteredSignals = filteredSignals.filter(s => s.cabinet === cabinetId);
-    if (masterId) filteredSignals = filteredSignals.filter(s => s.master === masterId);
-    if (slaveId) filteredSignals = filteredSignals.filter(s => s.slave === slaveId);
-    if (moduleId) filteredSignals = filteredSignals.filter(s => s.module === moduleId);
-
-    const tbody = document.getElementById('signal-table-body');
-    tbody.innerHTML = '';
-
-    filteredSignals.forEach(signal => {
-        const cabinet = currentData.cabinets.find(c => c.id === signal.cabinet);
-        const master = currentData.masters.find(m => m.id === signal.master);
-        const slave = currentData.slaves.find(s => s.id === signal.slave);
-        const module = currentData.modules.find(m => m.id === signal.module);
-        const cabinetName = cabinet ? cabinet.code : '未知机柜';
-        const masterName = master ? master.code : '未知主站';
-        const slaveName = slave ? slave.code : '未知从站';
-        const moduleName = module ? module.code : '未知模块';
-        const path = `${cabinetName} > ${masterName} > ${slaveName} > ${moduleName}`;
-
-        const typeNames = {
-            'AI': '模拟量输入(AI)',
-            'AO': '模拟量输出(AO)',
-            'DI': '数字量输入(DI)',
-            'DO': '数字量输出(DO)',
-            'RTD': '温度(RTD)',
-            'TC': '热电偶(TC)',
-            'PO': '脉冲输出(PO)'
-        };
-
-        const range = signal.rangeMin !== undefined && signal.rangeMax !== undefined
-            ? `${signal.rangeMin} ~ ${signal.rangeMax}`
-            : '-';
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <input type="checkbox" class="signal-checkbox" value="${signal.id}" data-signal-name="${signal.name}">
-            </td>
-            <td><strong>${signal.code}</strong></td>
-            <td>${signal.name}</td>
-            <td>${path}</td>
-            <td>${typeNames[signal.type] || signal.type}</td>
-            <td>${signal.channel}</td>
-            <td>${signal.unit || '-'}</td>
-            <td>${range}</td>
-            <td>
-                <span class="${signal.currentValue !== undefined ? 'text-primary fw-bold' : ''}">
-                    ${signal.currentValue !== undefined ? signal.currentValue : '-'}
-                </span>
-            </td>
-            <td>
-                <span class="status-indicator ${signal.status === 'online' ? 'status-online' : 'status-offline'}"></span>
-                <span>${signal.status === 'online' ? '在线' : '离线'}</span>
-            </td>
-            <td>${signal.createTime || signal.create_time}</td>
-            <td class="action-buttons">
-                <button class="btn btn-sm" style="background: #e6f7ff;" onclick="editSignal('${signal.id}')">
-                    <i class="fas fa-edit"></i> 编辑
-                </button>
-                <button class="btn btn-sm" style="background: #fff2e8;" onclick="confirmDeleteItem('signal', '${signal.id}', '${signal.name}')">
-                    <i class="fas fa-trash"></i> 删除
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-
-    document.getElementById('signal-count').textContent = `共 ${filteredSignals.length} 个信号`;
-}
-
-function searchSignals() { refreshSignalView(); }
-
-function resetSignalFilter() {
-    document.getElementById('signal-search').value = '';
-    document.getElementById('signal-cabinet-filter').value = '';
-    document.getElementById('signal-master-filter').value = '';
-    document.getElementById('signal-slave-filter').value = '';
-    document.getElementById('signal-module-filter').value = '';
-    refreshSignalView();
-}
 
 function showAddSignalModal() {
     document.getElementById('signalModalTitle').textContent = '新增信号';
@@ -1247,27 +1153,6 @@ async function saveSignal() {
     }
 }
 
-// 信号全选/运行
-function toggleSelectAllSignals() {
-    const selectAll = document.getElementById('select-all-signals').checked;
-    document.querySelectorAll('.signal-checkbox').forEach(cb => cb.checked = selectAll);
-}
-
-function toggleCheckboxes(source) {
-    document.querySelectorAll('.signal-checkbox').forEach(cb => cb.checked = source.checked);
-    const selectAll = document.getElementById('select-all-signals');
-    if (selectAll) selectAll.checked = source.checked;
-}
-
-function runSelectedSignals() {
-    const selected = Array.from(document.querySelectorAll('.signal-checkbox:checked'))
-        .map(cb => cb.getAttribute('data-signal-name'));
-    if (selected.length === 0) {
-        alert('请先选择要运行的信号！');
-        return;
-    }
-    alert(`正在运行以下信号：\n\n${selected.join(', ')}\n\n共 ${selected.length} 个信号`);
-}
 
 // ==================== 工程管理 ====================
 
@@ -1664,4 +1549,250 @@ function onModuleTypeChange() {
         }
         container.appendChild(table);
     }
+}
+
+// ==================== 信号管理辅助函数 ====================
+
+// 按模块 ID 对信号数组进行分组
+function groupSignalsByModule(signals) {
+    const groups = {};
+    signals.forEach(signal => {
+        const moduleId = signal.module;
+        if (!groups[moduleId]) {
+            groups[moduleId] = [];
+        }
+        groups[moduleId].push(signal);
+    });
+    return groups;
+}
+
+// 渲染一个模块的所有信号为一个表格（输入信号专用，包含信号类型列）
+function renderInputModuleGroup(module, signals, container) {
+    // 模块标题行（浅绿色背景）
+    const moduleTitle = document.createElement('div');
+    moduleTitle.className = 'bg-success bg-opacity-10 p-2 mb-2 fw-bold';
+    moduleTitle.textContent = `${module.code} - ${module.name} (${module.type})`;
+    container.appendChild(moduleTitle);
+
+    // 创建表格，增加选择列
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-bordered mb-4';
+    table.innerHTML = `
+        <thead class="table-light">
+            <tr>
+                <th style="width: 40px;">选择</th>
+                <th>信号编号</th>
+                <th>信号类型</th>
+                <th>变量名称</th>
+                <th>数值类型</th>
+                <th>设定数值</th>
+                <th>当前数值</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+    const tbody = table.querySelector('tbody');
+
+    // 按通道号排序
+    signals.sort((a, b) => a.channel - b.channel);
+
+    signals.forEach(signal => {
+        const row = document.createElement('tr');
+        // 数值类型映射
+        let valueType = '';
+        if (signal.type === '16DI' || signal.type === '16DO') valueType = '布尔';
+        else if (signal.type === '08AI' || signal.type === '08AO') valueType = '模拟量';
+        else valueType = signal.type;
+
+        row.innerHTML = `
+            <td style="text-align: center;">
+                <input type="checkbox" class="signal-checkbox" data-signal-id="${signal.id}">
+            </td>
+            <td>${signal.code}</td>
+            <td>${signal.type}</td>
+            <td>${signal.name}</td>
+            <td>${valueType}</td>
+            <td>
+                <input type="number" class="form-control form-control-sm setpoint-input"
+                       data-signal-id="${signal.id}" value="${signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : ''}"
+                       step="any" style="width: 100px;">
+            </td>
+            <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    container.appendChild(table);
+}
+
+// 渲染一个模块的所有信号为一个表格（输出信号专用，无信号类型列）
+function renderOutputModuleGroup(module, signals, container) {
+    const moduleTitle = document.createElement('div');
+    moduleTitle.className = 'bg-success bg-opacity-10 p-2 mb-2 fw-bold';
+    moduleTitle.textContent = `${module.code} - ${module.name} (${module.type})`;
+    container.appendChild(moduleTitle);
+
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-bordered mb-4';
+    table.innerHTML = `
+        <thead class="table-light">
+            <tr>
+                <th style="width: 40px;">选择</th>
+                <th>信号编号</th>
+                <th>变量名称</th>
+                <th>数值类型</th>
+                <th>设定数值</th>
+                <th>当前数值</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+    const tbody = table.querySelector('tbody');
+
+    signals.sort((a, b) => a.channel - b.channel);
+
+    signals.forEach(signal => {
+        const row = document.createElement('tr');
+        let valueType = '';
+        if (signal.type === '16DI' || signal.type === '16DO') valueType = '布尔';
+        else if (signal.type === '08AI' || signal.type === '08AO') valueType = '模拟量';
+        else valueType = signal.type;
+
+        row.innerHTML = `
+            <td style="text-align: center;">
+                <input type="checkbox" class="signal-checkbox" data-signal-id="${signal.id}">
+            </td>
+            <td>${signal.code}</td>
+            <td>${signal.name}</td>
+            <td>${valueType}</td>
+            <td>
+                <input type="number" class="form-control form-control-sm setpoint-input"
+                       data-signal-id="${signal.id}" value="${signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : ''}"
+                       step="any" style="width: 100px;">
+            </td>
+            <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    container.appendChild(table);
+}
+
+// ==================== 信号管理主函数 ====================
+function refreshSignalView() {
+    const searchTerm = document.getElementById('signal-search').value.toLowerCase();
+    const cabinetId = document.getElementById('signal-cabinet-filter').value;
+    const masterId = document.getElementById('signal-master-filter').value;
+    const slaveId = document.getElementById('signal-slave-filter').value;
+    const moduleId = document.getElementById('signal-module-filter').value;
+
+    let filteredSignals = currentData.signals;
+    if (searchTerm) {
+        filteredSignals = filteredSignals.filter(s =>
+            s.code.toLowerCase().includes(searchTerm) ||
+            s.name.toLowerCase().includes(searchTerm)
+        );
+    }
+    if (cabinetId) filteredSignals = filteredSignals.filter(s => s.cabinet === cabinetId);
+    if (masterId) filteredSignals = filteredSignals.filter(s => s.master === masterId);
+    if (slaveId) filteredSignals = filteredSignals.filter(s => s.slave === slaveId);
+    if (moduleId) filteredSignals = filteredSignals.filter(s => s.module === moduleId);
+
+    // 定义输入/输出模块类型
+    const inputTypes = ['16DI', '08AI'];
+    const outputTypes = ['16DO', '08AO'];
+
+    const inputSignals = filteredSignals.filter(s => inputTypes.includes(s.type));
+    const outputSignals = filteredSignals.filter(s => outputTypes.includes(s.type));
+
+    // 按模块分组
+    const inputGroups = groupSignalsByModule(inputSignals);
+    const outputGroups = groupSignalsByModule(outputSignals);
+
+    // 渲染输入信号
+    const inputContainer = document.getElementById('input-signals-container');
+    inputContainer.innerHTML = '';
+    for (const [modId, sigs] of Object.entries(inputGroups)) {
+        const module = currentData.modules.find(m => m.id === modId);
+        if (module) renderInputModuleGroup(module, sigs, inputContainer);
+    }
+    if (Object.keys(inputGroups).length === 0) {
+        inputContainer.innerHTML = '<p class="text-muted">暂无输入信号</p>';
+    }
+
+    // 渲染输出信号
+    const outputContainer = document.getElementById('output-signals-container');
+    outputContainer.innerHTML = '';
+    for (const [modId, sigs] of Object.entries(outputGroups)) {
+        const module = currentData.modules.find(m => m.id === modId);
+        if (module) renderOutputModuleGroup(module, sigs, outputContainer);
+    }
+    if (Object.keys(outputGroups).length === 0) {
+        outputContainer.innerHTML = '<p class="text-muted">暂无输出信号</p>';
+    }
+
+    // 绑定设定数值输入框的 change 事件
+    document.querySelectorAll('.setpoint-input').forEach(input => {
+        input.addEventListener('change', async function() {
+            const signalId = this.dataset.signalId;
+            const value = this.value === '' ? null : parseFloat(this.value);
+            try {
+                await apiRequest(`${API_BASE}/signals/${signalId}/`, 'PATCH', { setpoint: value });
+                // 更新内存数据
+                const signal = currentData.signals.find(s => s.id === signalId);
+                if (signal) signal.setpoint = value;
+            } catch (error) {
+                console.error('更新设定值失败:', error);
+                alert('设定值保存失败');
+            }
+        });
+    });
+
+    // 绑定全选事件
+    const selectAllInput = document.getElementById('select-all-input');
+    if (selectAllInput) {
+        selectAllInput.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('#input-signals-container .signal-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    }
+
+    const selectAllOutput = document.getElementById('select-all-output');
+    if (selectAllOutput) {
+        selectAllOutput.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('#output-signals-container .signal-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    }
+}
+
+// 搜索信号
+function searchSignals() {
+    refreshSignalView();
+}
+
+// 重置信号过滤器
+function resetSignalFilter() {
+    document.getElementById('signal-search').value = '';
+    document.getElementById('signal-cabinet-filter').value = '';
+    document.getElementById('signal-master-filter').value = '';
+    document.getElementById('signal-slave-filter').value = '';
+    document.getElementById('signal-module-filter').value = '';
+    refreshSignalView();
+}
+
+// 执行选中的信号
+function runSelectedSignals() {
+    const selectedIds = Array.from(document.querySelectorAll('.signal-checkbox:checked'))
+        .map(cb => cb.dataset.signalId);
+    if (selectedIds.length === 0) {
+        alert('请先选择要执行的信号！');
+        return;
+    }
+    const selectedSignals = selectedIds.map(id => {
+        const signal = currentData.signals.find(s => s.id === id);
+        return signal ? `${signal.code} - ${signal.name}` : id;
+    });
+    alert(`正在执行以下信号：\n\n${selectedSignals.join('\n')}\n\n共 ${selectedSignals.length} 个信号`);
+    // 在此可添加 MQTT 发布或其他执行逻辑
 }

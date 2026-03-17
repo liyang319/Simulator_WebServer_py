@@ -331,6 +331,7 @@
                 <div id="signal-management" class="module">
                     <h2><i class="fas fa-chart-line"></i> 信号管理</h2>
 
+                    <!-- 过滤栏（保持不变） -->
                     <div class="search-bar">
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 80px 80px; gap: 8px; align-items: end;">
                             <div>
@@ -341,28 +342,24 @@
                                 <label style="font-size: 12px;">所属机柜</label>
                                 <select id="signal-cabinet-filter" class="form-control" onchange="updateSignalMasterFilter()">
                                     <option value="">全部机柜</option>
-                                    <!-- 动态加载机柜选项 -->
                                 </select>
                             </div>
                             <div>
                                 <label style="font-size: 12px;">所属主站</label>
                                 <select id="signal-master-filter" class="form-control" onchange="updateSignalSlaveFilter()">
                                     <option value="">全部主站</option>
-                                    <!-- 动态加载主站选项 -->
                                 </select>
                             </div>
                             <div>
                                 <label style="font-size: 12px;">所属从站</label>
                                 <select id="signal-slave-filter" class="form-control" onchange="updateSignalModuleFilter()">
                                     <option value="">全部从站</option>
-                                    <!-- 动态加载从站选项 -->
                                 </select>
                             </div>
                             <div>
                                 <label style="font-size: 12px;">所属模块</label>
                                 <select id="signal-module-filter" class="form-control">
                                     <option value="">全部模块</option>
-                                    <!-- 动态加载模块选项 -->
                                 </select>
                             </div>
                             <button class="btn btn-primary" onclick="searchSignals()" style="padding: 6px; font-size: 12px;">
@@ -372,58 +369,53 @@
                                 <i class="fas fa-redo"></i> 重置
                             </button>
                         </div>
+                        <!-- 执行按钮 -->
                         <div style="margin-top: 15px; text-align: right;">
-                            <button class="btn btn-success" onclick="showAddSignalModal()">
-                                <i class="fas fa-plus"></i> 新增信号
-                            </button>
-                            <button class="btn btn-warning" onclick="runSelectedSignals()" style="margin-left: 10px;">
-                                <i class="fas fa-play"></i> 运行
+                            <button class="btn btn-warning" onclick="runSelectedSignals()">
+                                <i class="fas fa-play"></i> 执行
                             </button>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <span>信号列表</span>
-                                    <span class="badge badge-info" id="signal-count">共 0 个信号</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div class="form-check" style="margin: 0;">
-                                        <input class="form-check-input" type="checkbox" id="select-all-signals" onchange="toggleSelectAllSignals()">
-                                        <label class="form-check-label" for="select-all-signals" style="font-size: 12px;">
-                                            全选
-                                        </label>
+                    <!-- 标签页 -->
+                    <ul class="nav nav-tabs mt-3" id="signalTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="input-tab" data-bs-toggle="tab" data-bs-target="#input-signals" type="button" role="tab">输入信号</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="output-tab" data-bs-toggle="tab" data-bs-target="#output-signals" type="button" role="tab">输出信号</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="signalTabContent">
+                        <!-- 输入信号标签页 -->
+                        <div class="tab-pane fade show active" id="input-signals" role="tabpanel">
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold">输入信号列表</span>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="select-all-input">
+                                            <label class="form-check-label" for="select-all-input">全选</label>
+                                        </div>
                                     </div>
+                                    <div id="input-signals-container"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 40px;">
-                                                <input type="checkbox" onclick="toggleCheckboxes(this)">
-                                            </th>
-                                            <th>信号编号</th>
-                                            <th>信号名称</th>
-                                            <th>所属路径</th>
-                                            <th>信号类型</th>
-                                            <th>通道编号</th>
-                                            <th>单位</th>
-                                            <th>量程范围</th>
-                                            <th>当前值</th>
-                                            <th>状态</th>
-                                            <th>创建时间</th>
-                                            <th>操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="signal-table-body">
-                                        <!-- 动态加载信号数据 -->
-                                    </tbody>
-                                </table>
+                        <!-- 输出信号标签页 -->
+                        <div class="tab-pane fade" id="output-signals" role="tabpanel">
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold">输出信号列表</span>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="select-all-output">
+                                            <label class="form-check-label" for="select-all-output">全选</label>
+                                        </div>
+                                    </div>
+                                    <div id="output-signals-container"></div>
+                                </div>
                             </div>
                         </div>
                     </div>

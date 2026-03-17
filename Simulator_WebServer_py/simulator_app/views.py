@@ -54,6 +54,11 @@ class SignalViewSet(viewsets.ModelViewSet):
     filterset_fields = ['cabinet_id', 'master_id', 'slave_id', 'module_id']
     search_fields = ['code', 'name', 'type']
 
+    def list(self, request, *args, **kwargs):
+        # 在返回列表前，先同步信号
+        sync_signals_from_modules()
+        return super().list(request, *args, **kwargs)
+
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
@@ -271,3 +276,49 @@ def deploy_master_config(request, master_id):
         })
     else:
         return Response({'error': 'MQTT publish failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def sync_signals_from_modules():
+    modules = Module.objects.all()
+    for module in modules:
+        type_map = {
+            '16DI': {'channels': 16, 'category': 'static'},
+            '08AI': {'channels': 8, 'category': 'static'},
+            '16DO': {'channels': 16, 'category': 'dynamic'},
+            '08AO': {'channels': 8, 'category': 'dynamic'},
+        }
+        info = type_map.get(module.type)
+        if not info:
+            continue
+
+        channels = info['channels']
+        category = info['category']
+
+        for ch in range(1, channels + 1):
+            signal_code = f"{module.code}-CH{ch:02d}"
+            signal_name = f"{module.name} 通道{ch}"
+            # 生成唯一 ID，避免空字符串冲突
+            signal_id = f"{module.id}-{ch}"
+
+            signal, created = Signal.objects.get_or_create(
+                module=module,
+                channel=ch,
+                defaults={
+                    'id': signal_id,  # 新增：提供唯一 ID
+                    'cabinet': module.cabinet,
+                    'master': module.master,
+                    'slave': module.slave,
+                    'code': signal_code,
+                    'name': signal_name,
+                    'type': module.type,
+                    'category': category,
+                    'unit': '',
+                    'range_min': None,
+                    'range_max': None,
+                    'current_value': None,
+                    'setpoint': None,
+                    'description': '',
+                    'status': 'online',
+                }
+            )
+            if created:
+                logger.info(f"Created signal {signal_code} for module {module.code}")
