@@ -1652,7 +1652,7 @@ function renderOutputModuleGroup(module, signals, container) {
                 <th>模块类型</th>
                 <th>变量名称</th>
                 <th>信号类型</th>
-                <th>设定数值</th>
+                <th style="width: 150px;">设定数值</th>
                 <th>当前数值</th>
             </tr>
         </thead>
@@ -1693,7 +1693,6 @@ function renderOutputModuleGroup(module, signals, container) {
             setpointControl.className = 'form-control form-control-sm setpoint-input';
             setpointControl.step = 'any';
             setpointControl.value = signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : 0;
-            setpointControl.style.width = '100px';
         } else { // 16DO模块
             const isStatic = (signal.wave_type === 1);
             if (isStatic) {
@@ -1717,7 +1716,6 @@ function renderOutputModuleGroup(module, signals, container) {
                 setpointControl.className = 'form-control form-control-sm setpoint-input';
                 setpointControl.step = 'any';
                 setpointControl.value = signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : 0;
-                setpointControl.style.width = '100px';
             }
         }
         setpointControl.dataset.signalId = signal.id;

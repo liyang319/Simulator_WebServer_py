@@ -369,8 +369,11 @@ def execute_signals(request):
                 data = []
                 for s in all_signals:
                     data_type.append(s.wave_type)
-                    # 设定数值，如果为 None 则默认 0
-                    data.append(s.setpoint if s.setpoint is not None else 0.0)
+                    val = s.setpoint if s.setpoint is not None else 0.0
+                    # 如果是整数且没有小数部分，转为 int 以在 JSON 中显示为整数
+                    if isinstance(val, float) and val.is_integer():
+                        val = int(val)
+                    data.append(val)
 
                 # 构建 mask：被选中的通道对应位置1（通道1对应最低位）
                 mask = 0
