@@ -1817,18 +1817,22 @@ function resetSignalFilter() {
     refreshSignalView();
 }
 
-// 执行选中的信号
-function runSelectedSignals() {
+async function runSelectedSignals() {
     const selectedIds = Array.from(document.querySelectorAll('.signal-checkbox:checked'))
         .map(cb => cb.dataset.signalId);
     if (selectedIds.length === 0) {
         alert('请先选择要执行的信号！');
         return;
     }
-    const selectedSignals = selectedIds.map(id => {
-        const signal = currentData.signals.find(s => s.id === id);
-        return signal ? `${signal.code} - ${signal.name}` : id;
-    });
-    alert(`正在执行以下信号：\n\n${selectedSignals.join('\n')}\n\n共 ${selectedSignals.length} 个信号`);
-    // 在此可添加 MQTT 发布或其他执行逻辑
+    try {
+        const response = await apiRequest(`${API_BASE}/execute-signals/`, 'POST', { signal_ids: selectedIds });
+        let message = '执行完成：\n';
+        response.results.forEach(r => {
+            message += `主站 ${r.master}: ${r.success ? '成功' : '失败'}\n`;
+        });
+        alert(message);
+    } catch (error) {
+        console.error('执行失败:', error);
+        alert('执行失败，请重试');
+    }
 }
