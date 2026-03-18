@@ -325,36 +325,29 @@ def sync_signals_from_modules():
 
 @api_view(['POST'])
 def execute_signals(request):
-    """执行选中的输出信号，按主站分组发布MQTT消息"""
+    """执行选中的输出信号，按主站分组发布MQTT消息（新格式）"""
     signal_ids = request.data.get('signal_ids', [])
     if not signal_ids:
         return Response({'error': 'No signal ids provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 获取所有选中的信号，且必须是输出类型 (16DO, 08AO)
     signals = Signal.objects.filter(id__in=signal_ids, type__in=['16DO', '08AO']).select_related('module', 'slave', 'master', 'cabinet')
     if not signals.exists():
         return Response({'warning': 'No output signals selected'}, status=status.HTTP_200_OK)
 
     # 按主站分组
-    master_signals = {}
-    for signal in signals:
-        master_id = signal.master_id
-        if master_id not in master_signals:
-            master_signals[master_id] = []
-        master_signals[master_id].append(signal)
+    master_groups = {}
+    for sig in signals:
+        master_groups.setdefault(sig.master_id, []).append(sig)
 
     results = []
-    for master_id, sig_list in master_signals.items():
+    for master_id, sig_list in master_groups.items():
         master = sig_list[0].master
         cabinet = sig_list[0].cabinet
 
         # 按从站分组
         slave_groups = {}
         for sig in sig_list:
-            slave_id = sig.slave_id
-            if slave_id not in slave_groups:
-                slave_groups[slave_id] = []
-            slave_groups[slave_id].append(sig)
+            slave_groups.setdefault(sig.slave_id, []).append(sig)
 
         slaves_data = []
         for slave_id, sigs in slave_groups.items():
@@ -363,10 +356,7 @@ def execute_signals(request):
             # 按模块分组
             module_groups = {}
             for sig in sigs:
-                module_id = sig.module_id
-                if module_id not in module_groups:
-                    module_groups[module_id] = []
-                module_groups[module_id].append(sig)
+                module_groups.setdefault(sig.module_id, []).append(sig)
 
             modules_data = []
             for module_id, sigs_mod in module_groups.items():
@@ -374,56 +364,52 @@ def execute_signals(request):
 
                 # 获取该模块所有信号（按通道排序）
                 all_signals = Signal.objects.filter(module=module).order_by('channel')
-                # 读取每个通道的设定值，若为None则默认0
-                data_values = [s.setpoint if s.setpoint is not None else 0 for s in all_signals]
+                # 生成 dataType 和 data 数组
+                data_type = []
+                data = []
+                for s in all_signals:
+                    data_type.append(s.wave_type)
+                    # 设定数值，如果为 None 则默认 0
+                    data.append(s.setpoint if s.setpoint is not None else 0.0)
 
-                # 构建mask：被选中的通道对应位置1（通道1对应最低位）
+                # 构建 mask：被选中的通道对应位置1（通道1对应最低位）
                 mask = 0
                 for i, s in enumerate(all_signals):
                     if s.id in signal_ids:
                         mask |= (1 << i)
 
                 if module.type == '16DO':
-                    # 组合16位整数
-                    data_int = 0
-                    for i, val in enumerate(data_values):
-                        if val:
-                            data_int |= (1 << i)
-                    data_int &= 0xFFFF
-                    mask &= 0xFFFF
+                    # data 为整数数组，但要求输出整数列表（与示例一致）
+                    # 注意：data_type 已经是整数列表
                     modules_data.append({
                         "ioType": 2,
                         "slot": module.slot,
                         "orderNumber": 506102,
-                        "data": data_int,
-                        "dataMask": mask
+                        "dataType": data_type,
+                        "data": data,  # 浮点数列表，后端会转为 JSON 数字
+                        "dataMask": mask & 0xFFFF
                     })
                 elif module.type == '08AO':
-                    # data为数组，元素取整数
-                    data_array = [int(v) for v in data_values]
-                    mask &= 0xFF
                     modules_data.append({
                         "ioType": 13,
                         "slot": module.slot,
                         "orderNumber": 506113,
-                        "data": data_array,
-                        "dataMask": mask
+                        "dataType": data_type,
+                        "data": data,
+                        "dataMask": mask & 0xFF
                     })
-                # 其他类型忽略（理论上不会出现）
 
-            # 构建从站数据
             vendor_id = 2877
             product_code = 701102003 if slave.slave_type == 'S1-EC20' else 701102001
             slave_data = {
                 "alias": 0,
-                "position": 0,  # 可根据需要调整，例如使用从站id或地址
+                "position": 0,  # 可按需调整
                 "vendorId": vendor_id,
                 "productCode": product_code,
                 "ioModules": modules_data
             }
             slaves_data.append(slave_data)
 
-        # 构建最终payload
         payload = {
             "version": "0.01",
             "slaves": slaves_data

@@ -119,6 +119,13 @@ class Signal(models.Model):
         default='static',
         help_text='信号类别：静态信号或动态信号'
     )
+    WAVE_TYPE_CHOICES = [
+        (1, '静态信号'),
+        (2, '方波'),
+        (3, '正弦波'),
+        (4, '三角波'),
+    ]
+    wave_type = models.IntegerField(choices=WAVE_TYPE_CHOICES, default=1)
 
     class Meta:
         unique_together = ['module', 'channel']  # 确保每个模块的每个通道只有一个信号记录

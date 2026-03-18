@@ -1580,9 +1580,9 @@ function renderInputModuleGroup(module, signals, container) {
             <tr>
                 <th style="width: 40px;">选择</th>
                 <th>信号编号</th>
-                <th>信号类型</th>
+                <th>模块类型</th>
                 <th>变量名称</th>
-                <th>数值类型</th>
+                <th>信号类型</th>
                 <th>设定数值</th>
                 <th>当前数值</th>
             </tr>
@@ -1595,13 +1595,13 @@ function renderInputModuleGroup(module, signals, container) {
 
     signals.forEach(signal => {
         const row = document.createElement('tr');
-        // 数值类型固定为 "Bit"
-        const valueType = 'Bit';
+        // 信号类型固定为 "静态信号"
+        const signalTypeDisplay = '静态信号';
 
-        // 设定数值下拉框，默认值取自 signal.setpoint，若无则为 0，并禁用
+        // 设定数值下拉框（禁用）
         const setpointSelect = document.createElement('select');
         setpointSelect.className = 'form-control form-control-sm setpoint-input';
-        setpointSelect.disabled = true;  // 输入信号禁用
+        setpointSelect.disabled = true;
         setpointSelect.dataset.signalId = signal.id;
 
         const option0 = document.createElement('option');
@@ -1623,11 +1623,10 @@ function renderInputModuleGroup(module, signals, container) {
             <td>${signal.code}</td>
             <td>${signal.type}</td>
             <td>${signal.name}</td>
-            <td>${valueType}</td>
+            <td>${signalTypeDisplay}</td>
             <td></td>
             <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
         `;
-        // 将设定数值列（第6个 td）替换为下拉框
         const setpointTd = row.cells[5];
         setpointTd.appendChild(setpointSelect);
 
@@ -1650,9 +1649,9 @@ function renderOutputModuleGroup(module, signals, container) {
             <tr>
                 <th style="width: 40px;">选择</th>
                 <th>信号编号</th>
-                <th>信号类型</th>
+                <th>模块类型</th>
                 <th>变量名称</th>
-                <th>数值类型</th>
+                <th>信号类型</th>
                 <th>设定数值</th>
                 <th>当前数值</th>
             </tr>
@@ -1665,32 +1664,61 @@ function renderOutputModuleGroup(module, signals, container) {
 
     signals.forEach(signal => {
         const row = document.createElement('tr');
-        const valueType = 'Bit';
 
+        // 信号类型下拉框
+        const waveTypeSelect = document.createElement('select');
+        waveTypeSelect.className = 'form-control form-control-sm wave-type-input';
+        waveTypeSelect.dataset.signalId = signal.id;
+
+        const typeOptions = [
+            { value: 1, text: '静态信号' },
+            { value: 2, text: '方波' },
+            { value: 3, text: '正弦波' },
+            { value: 4, text: '三角波' }
+        ];
+        typeOptions.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            option.selected = (signal.wave_type === opt.value);
+            waveTypeSelect.appendChild(option);
+        });
+
+        // 设定数值控件（根据模块类型和信号类型动态变化）
         let setpointControl;
         if (module.type === '08AO') {
-            // AO模块：数字输入框，默认值为0
+            // AO模块：始终为数字输入框
             setpointControl = document.createElement('input');
             setpointControl.type = 'number';
             setpointControl.className = 'form-control form-control-sm setpoint-input';
             setpointControl.step = 'any';
-            // 修改：如果 setpoint 不存在，默认显示0
             setpointControl.value = signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : 0;
             setpointControl.style.width = '100px';
-        } else {
-            // DO模块：下拉框 0/1
-            setpointControl = document.createElement('select');
-            setpointControl.className = 'form-control form-control-sm setpoint-input';
-            const option0 = document.createElement('option');
-            option0.value = '0';
-            option0.textContent = '0';
-            option0.selected = (signal.setpoint === 0 || signal.setpoint === null || signal.setpoint === undefined);
-            const option1 = document.createElement('option');
-            option1.value = '1';
-            option1.textContent = '1';
-            option1.selected = (signal.setpoint === 1);
-            setpointControl.appendChild(option0);
-            setpointControl.appendChild(option1);
+        } else { // 16DO模块
+            const isStatic = (signal.wave_type === 1);
+            if (isStatic) {
+                // 静态信号：下拉框 0/1
+                setpointControl = document.createElement('select');
+                setpointControl.className = 'form-control form-control-sm setpoint-input';
+                const option0 = document.createElement('option');
+                option0.value = '0';
+                option0.textContent = '0';
+                option0.selected = (signal.setpoint === 0 || signal.setpoint === null || signal.setpoint === undefined);
+                const option1 = document.createElement('option');
+                option1.value = '1';
+                option1.textContent = '1';
+                option1.selected = (signal.setpoint === 1);
+                setpointControl.appendChild(option0);
+                setpointControl.appendChild(option1);
+            } else {
+                // 非静态信号：数字输入框
+                setpointControl = document.createElement('input');
+                setpointControl.type = 'number';
+                setpointControl.className = 'form-control form-control-sm setpoint-input';
+                setpointControl.step = 'any';
+                setpointControl.value = signal.setpoint !== null && signal.setpoint !== undefined ? signal.setpoint : 0;
+                setpointControl.style.width = '100px';
+            }
         }
         setpointControl.dataset.signalId = signal.id;
 
@@ -1701,10 +1729,16 @@ function renderOutputModuleGroup(module, signals, container) {
             <td>${signal.code}</td>
             <td>${signal.type}</td>
             <td>${signal.name}</td>
-            <td>${valueType}</td>
+            <td></td>
             <td></td>
             <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
         `;
+
+        // 将信号类型下拉框放入第5列
+        const waveTypeTd = row.cells[4];
+        waveTypeTd.appendChild(waveTypeSelect);
+
+        // 将设定数值控件放入第6列
         const setpointTd = row.cells[5];
         setpointTd.appendChild(setpointControl);
 
@@ -1800,6 +1834,20 @@ function refreshSignalView() {
             checkboxes.forEach(cb => cb.checked = this.checked);
         });
     }
+
+    // 绑定信号类型下拉框 change 事件
+    document.querySelectorAll('.wave-type-input').forEach(select => {
+        select.addEventListener('change', async function() {
+            const signalId = this.dataset.signalId;
+            const waveType = parseInt(this.value, 10);
+            await updateSignalWaveType(signalId, waveType);
+            // 更新后可能需要刷新当前行的设定数值控件（如果是DO模块）
+            // 简单起见，重新加载整个信号视图
+            // 但为避免闪烁，可以仅更新当前行的设定数值控件
+            // 这里为了简化，直接重新加载
+            refreshSignalView();
+        });
+    });
 }
 
 // 搜索信号
@@ -1834,5 +1882,16 @@ async function runSelectedSignals() {
     } catch (error) {
         console.error('执行失败:', error);
         alert('执行失败，请重试');
+    }
+}
+
+async function updateSignalWaveType(signalId, waveType) {
+    try {
+        await apiRequest(`${API_BASE}/signals/${signalId}/`, 'PATCH', { wave_type: waveType });
+        const signal = currentData.signals.find(s => s.id === signalId);
+        if (signal) signal.wave_type = waveType;
+    } catch (error) {
+        console.error('更新信号类型失败:', error);
+        alert('信号类型保存失败');
     }
 }
