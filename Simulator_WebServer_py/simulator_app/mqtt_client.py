@@ -193,6 +193,7 @@ class SimpleMQTTClient:
                 bit = (int_val >> i) & 1
                 signal.current_value = bit
                 signal.save(update_fields=['current_value'])
+                logger.info(f"更新信号 {signal.code} current_value = {bit if module_type == '16DI' else data_values[i]}")
         else:
             logger.warning(f"未知模块类型: {module_type}")
 

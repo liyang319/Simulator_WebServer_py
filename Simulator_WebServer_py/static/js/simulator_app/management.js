@@ -109,6 +109,12 @@ function showModule(moduleId) {
     document.getElementById(moduleId).classList.add('active');
     event.currentTarget.classList.add('active');
     updateFilterSelects();
+    // 新增：控制信号管理定时器
+    if (moduleId === 'signal-management') {
+        startSignalRefresh();
+    } else {
+        stopSignalRefresh();
+    }
 }
 
 // ==================== 过滤器初始化与更新 ====================
@@ -1625,7 +1631,7 @@ function renderInputModuleGroup(module, signals, container) {
             <td>${signal.name}</td>
             <td>${signalTypeDisplay}</td>
             <td></td>
-            <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
+            <td>${signal.current_value !== null && signal.current_value !== undefined ? signal.current_value : '-'}</td>
         `;
         const setpointTd = row.cells[5];
         setpointTd.appendChild(setpointSelect);
@@ -1729,7 +1735,7 @@ function renderOutputModuleGroup(module, signals, container) {
             <td>${signal.name}</td>
             <td></td>
             <td></td>
-            <td>${signal.currentValue !== null && signal.currentValue !== undefined ? signal.currentValue : '-'}</td>
+            <td>${signal.current_value !== null && signal.current_value !== undefined ? signal.current_value : '-'}</td>
         `;
 
         // 将信号类型下拉框放入第5列
@@ -1891,5 +1897,34 @@ async function updateSignalWaveType(signalId, waveType) {
     } catch (error) {
         console.error('更新信号类型失败:', error);
         alert('信号类型保存失败');
+    }
+}
+
+// 信号管理定时刷新相关
+let signalRefreshTimer = null;
+
+function startSignalRefresh() {
+    if (signalRefreshTimer) clearInterval(signalRefreshTimer);
+    signalRefreshTimer = setInterval(reloadSignals, 1000);
+}
+
+function stopSignalRefresh() {
+    if (signalRefreshTimer) {
+        clearInterval(signalRefreshTimer);
+        signalRefreshTimer = null;
+    }
+}
+
+async function reloadSignals() {
+    // 仅在信号管理模块激活时执行
+    if (!document.getElementById('signal-management').classList.contains('active')) {
+        return;
+    }
+    try {
+        const signals = await apiRequest(`${API_BASE}/signals/`);
+        currentData.signals = signals;
+        refreshSignalView(); // 重新渲染信号表格，更新所有显示
+    } catch (error) {
+        console.error('刷新信号数据失败:', error);
     }
 }
