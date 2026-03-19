@@ -1852,6 +1852,18 @@ function refreshSignalView() {
             refreshSignalView();
         });
     });
+
+    // 恢复之前选中的 checkbox
+    const savedSelectedIds = window._savedSignalIds || [];
+    if (savedSelectedIds.length > 0) {
+        setTimeout(() => {
+            savedSelectedIds.forEach(id => {
+                const checkbox = document.querySelector(`.signal-checkbox[data-signal-id="${id}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }, 0);
+    }
+    window._savedSignalIds = [];
 }
 
 // 搜索信号
@@ -1920,11 +1932,22 @@ async function reloadSignals() {
     if (!document.getElementById('signal-management').classList.contains('active')) {
         return;
     }
+    // 如果当前不是输入信号标签页，则不刷新
+    const inputTab = document.getElementById('input-signals');
+    if (!inputTab || !inputTab.classList.contains('active')) {
+        return;
+    }
+    // 保存当前选中的信号 ID
+    const selectedIds = Array.from(document.querySelectorAll('.signal-checkbox:checked'))
+        .map(cb => cb.dataset.signalId);
+    window._savedSignalIds = selectedIds;
+
     try {
         const signals = await apiRequest(`${API_BASE}/signals/`);
         currentData.signals = signals;
-        refreshSignalView(); // 重新渲染信号表格，更新所有显示
+        refreshSignalView(); // 重新渲染表格，内部会恢复选中状态
     } catch (error) {
         console.error('刷新信号数据失败:', error);
+        window._savedSignalIds = [];
     }
 }

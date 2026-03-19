@@ -267,7 +267,7 @@ def deploy_master_config(request, master_id):
         config_data["slaves"].append(slave_data)
 
     # 通过 MQTT 发布
-    topic = f"simulator/command/{cabinet_id}/{master.id}"
+    topic = f"EtherCAT/Command/{master.name}/EscData"
     if mqtt_client.publish_message(topic, config_data):
         return Response({
             'success': True,
@@ -417,7 +417,7 @@ def execute_signals(request):
             "version": "0.01",
             "slaves": slaves_data
         }
-        topic = f"simulator/command/{cabinet.id}/{master.id}"
+        topic = f"EtherCAT/Command/{master.name}/ControlData"
         print(payload)
         success = mqtt_client.publish_message(topic, payload)
         results.append({
