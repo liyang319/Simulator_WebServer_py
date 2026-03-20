@@ -34,17 +34,30 @@ class MasterViewSet(viewsets.ModelViewSet):
     search_fields = ['code', 'name', 'ip']
 
     def perform_update(self, serializer):
-        # 获取更新前的实例
         instance = self.get_object()
         old_cabinet_id = instance.cabinet_id
-        # 保存更新后的数据
         new_instance = serializer.save()
-        # 如果机柜发生变化，更新关联的从站和模块的 cabinet_id
+
         if old_cabinet_id != new_instance.cabinet_id:
-            # 更新该主站下所有从站的机柜
+            # 更新从站的机柜
             Slave.objects.filter(master=new_instance).update(cabinet_id=new_instance.cabinet_id)
-            # 更新这些从站下属的所有模块的机柜（通过从站关联）
+            # 更新模块的机柜
             Module.objects.filter(slave__master=new_instance).update(cabinet_id=new_instance.cabinet_id)
+            # 更新信号的机柜
+            Signal.objects.filter(module__slave__master=new_instance).update(cabinet_id=new_instance.cabinet_id)
+
+    # def perform_update(self, serializer):
+    #     # 获取更新前的实例
+    #     instance = self.get_object()
+    #     old_cabinet_id = instance.cabinet_id
+    #     # 保存更新后的数据
+    #     new_instance = serializer.save()
+    #     # 如果机柜发生变化，更新关联的从站和模块的 cabinet_id
+    #     if old_cabinet_id != new_instance.cabinet_id:
+    #         # 更新该主站下所有从站的机柜
+    #         Slave.objects.filter(master=new_instance).update(cabinet_id=new_instance.cabinet_id)
+    #         # 更新这些从站下属的所有模块的机柜（通过从站关联）
+    #         Module.objects.filter(slave__master=new_instance).update(cabinet_id=new_instance.cabinet_id)
 
 class SlaveViewSet(viewsets.ModelViewSet):
     queryset = Slave.objects.all()
@@ -57,16 +70,36 @@ class SlaveViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         old_cabinet_id = instance.cabinet_id
         old_master_id = instance.master_id
-        new_instance = serializer.save()  # 使用新实例
+        new_instance = serializer.save()
+
+        # 如果机柜或主站发生变化，更新关联的模块和信号
         if old_cabinet_id != new_instance.cabinet_id or old_master_id != new_instance.master_id:
-            from .models import Module
+            # 获取该从站下的所有模块
             modules = Module.objects.filter(slave=new_instance)
+            # 更新模块的机柜和主站
             if old_cabinet_id != new_instance.cabinet_id:
-                updated = modules.update(cabinet_id=new_instance.cabinet_id)
-                print(f"Updated {updated} modules cabinet_id to {new_instance.cabinet_id}")
+                modules.update(cabinet_id=new_instance.cabinet_id)
+                # 更新该从站下所有信号的机柜
+                Signal.objects.filter(module__slave=new_instance).update(cabinet_id=new_instance.cabinet_id)
             if old_master_id != new_instance.master_id:
-                updated = modules.update(master_id=new_instance.master_id)
-                print(f"Updated {updated} modules master_id to {new_instance.master_id}")
+                modules.update(master_id=new_instance.master_id)
+                # 更新该从站下所有信号的主站
+                Signal.objects.filter(module__slave=new_instance).update(master_id=new_instance.master_id)
+
+    # def perform_update(self, serializer):
+    #     instance = self.get_object()
+    #     old_cabinet_id = instance.cabinet_id
+    #     old_master_id = instance.master_id
+    #     new_instance = serializer.save()  # 使用新实例
+    #     if old_cabinet_id != new_instance.cabinet_id or old_master_id != new_instance.master_id:
+    #         from .models import Module
+    #         modules = Module.objects.filter(slave=new_instance)
+    #         if old_cabinet_id != new_instance.cabinet_id:
+    #             updated = modules.update(cabinet_id=new_instance.cabinet_id)
+    #             print(f"Updated {updated} modules cabinet_id to {new_instance.cabinet_id}")
+    #         if old_master_id != new_instance.master_id:
+    #             updated = modules.update(master_id=new_instance.master_id)
+    #             print(f"Updated {updated} modules master_id to {new_instance.master_id}")
 
 class ModuleViewSet(viewsets.ModelViewSet):
     queryset = Module.objects.all()
