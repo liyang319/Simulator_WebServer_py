@@ -40,6 +40,21 @@ class SlaveViewSet(viewsets.ModelViewSet):
     filterset_fields = ['cabinet_id', 'master_id']
     search_fields = ['code', 'name']
 
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_cabinet_id = instance.cabinet_id
+        old_master_id = instance.master_id
+        new_instance = serializer.save()  # 使用新实例
+        if old_cabinet_id != new_instance.cabinet_id or old_master_id != new_instance.master_id:
+            from .models import Module
+            modules = Module.objects.filter(slave=new_instance)
+            if old_cabinet_id != new_instance.cabinet_id:
+                updated = modules.update(cabinet_id=new_instance.cabinet_id)
+                print(f"Updated {updated} modules cabinet_id to {new_instance.cabinet_id}")
+            if old_master_id != new_instance.master_id:
+                updated = modules.update(master_id=new_instance.master_id)
+                print(f"Updated {updated} modules master_id to {new_instance.master_id}")
+
 class ModuleViewSet(viewsets.ModelViewSet):
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer

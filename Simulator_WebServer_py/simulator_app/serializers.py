@@ -18,6 +18,9 @@ class SlaveSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ModuleSerializer(serializers.ModelSerializer):
+    cabinet = serializers.PrimaryKeyRelatedField(read_only=True)
+    master = serializers.PrimaryKeyRelatedField(read_only=True)
+    slave = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Module
         fields = '__all__'
