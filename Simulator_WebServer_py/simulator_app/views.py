@@ -33,6 +33,19 @@ class MasterViewSet(viewsets.ModelViewSet):
     filterset_fields = ['cabinet_id']
     search_fields = ['code', 'name', 'ip']
 
+    def perform_update(self, serializer):
+        # 获取更新前的实例
+        instance = self.get_object()
+        old_cabinet_id = instance.cabinet_id
+        # 保存更新后的数据
+        new_instance = serializer.save()
+        # 如果机柜发生变化，更新关联的从站和模块的 cabinet_id
+        if old_cabinet_id != new_instance.cabinet_id:
+            # 更新该主站下所有从站的机柜
+            Slave.objects.filter(master=new_instance).update(cabinet_id=new_instance.cabinet_id)
+            # 更新这些从站下属的所有模块的机柜（通过从站关联）
+            Module.objects.filter(slave__master=new_instance).update(cabinet_id=new_instance.cabinet_id)
+
 class SlaveViewSet(viewsets.ModelViewSet):
     queryset = Slave.objects.all()
     serializer_class = SlaveSerializer
