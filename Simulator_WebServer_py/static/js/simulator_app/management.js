@@ -1419,7 +1419,13 @@ async function confirmDelete() {
 async function deployMasterConfig(masterId) {
     try {
         const response = await apiRequest(`${API_BASE}/masters/${masterId}/deploy-config/`, 'POST');
-        alert(`配置下发成功，主题：${response.topic}`);
+        if (response.warning) {
+            alert(response.warning);
+        } else if (response.success) {
+            alert(`配置下发成功，主题：${response.topic}`);
+        } else {
+            alert('配置下发失败：未知错误');
+        }
     } catch (error) {
         console.error('下发配置失败:', error);
         alert('下发配置失败，请重试');
@@ -1892,7 +1898,10 @@ async function runSelectedSignals() {
         const response = await apiRequest(`${API_BASE}/execute-signals/`, 'POST', { signal_ids: selectedIds });
         let message = '执行完成：\n';
         response.results.forEach(r => {
-            message += `主站 ${r.master}: ${r.success ? '成功' : '失败'}\n`;
+            // 从 currentData 中查找主站名称
+            const master = currentData.masters.find(m => m.id === r.master);
+            const masterName = master ? master.name : r.master; // 如果找不到则回退显示 ID
+            message += `主站 ${masterName}: ${r.success ? '成功' : '失败'}\n`;
         });
         alert(message);
     } catch (error) {
