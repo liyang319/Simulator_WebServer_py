@@ -8,31 +8,31 @@ class CabinetSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class MasterSerializer(serializers.ModelSerializer):
-    cabinet = serializers.PrimaryKeyRelatedField(read_only=True)
+    cabinet = serializers.PrimaryKeyRelatedField(queryset=Cabinet.objects.all())
     class Meta:
         model = Master
         fields = '__all__'
 
 class SlaveSerializer(serializers.ModelSerializer):
-    cabinet = serializers.PrimaryKeyRelatedField(read_only=True)
-    master = serializers.PrimaryKeyRelatedField(read_only=True)
+    cabinet = serializers.PrimaryKeyRelatedField(queryset=Cabinet.objects.all())
+    master = serializers.PrimaryKeyRelatedField(queryset=Master.objects.all())
     class Meta:
         model = Slave
         fields = '__all__'
 
 class ModuleSerializer(serializers.ModelSerializer):
-    cabinet = serializers.PrimaryKeyRelatedField(read_only=True)
-    master = serializers.PrimaryKeyRelatedField(read_only=True)
-    slave = serializers.PrimaryKeyRelatedField(read_only=True)
+    cabinet = serializers.PrimaryKeyRelatedField(queryset=Cabinet.objects.all())
+    master = serializers.PrimaryKeyRelatedField(queryset=Master.objects.all())
+    slave = serializers.PrimaryKeyRelatedField(queryset=Slave.objects.all())
     class Meta:
         model = Module
         fields = '__all__'
 
 class SignalSerializer(serializers.ModelSerializer):
-    cabinet = serializers.PrimaryKeyRelatedField(read_only=True)
-    master = serializers.PrimaryKeyRelatedField(read_only=True)
-    slave = serializers.PrimaryKeyRelatedField(read_only=True)
-    module = serializers.PrimaryKeyRelatedField(read_only=True)
+    cabinet = serializers.PrimaryKeyRelatedField(queryset=Cabinet.objects.all())
+    master = serializers.PrimaryKeyRelatedField(queryset=Master.objects.all())
+    slave = serializers.PrimaryKeyRelatedField(queryset=Slave.objects.all())
+    module = serializers.PrimaryKeyRelatedField(queryset=Module.objects.all())
     class Meta:
         model = Signal
         fields = '__all__'
