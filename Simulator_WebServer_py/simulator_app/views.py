@@ -238,7 +238,7 @@ def deploy_master_config(request, master_id):
         return Response({'error': 'Master not found'}, status=status.HTTP_404_NOT_FOUND)
 
     cabinet_id = master.cabinet_id
-    slaves = master.slaves.all().order_by('id')  # 改为按 id 排序（或按 code）
+    slaves = master.slaves.all().order_by('id')
     if not slaves:
         return Response({'warning': 'No slaves under this master'}, status=status.HTTP_200_OK)
 
@@ -247,18 +247,19 @@ def deploy_master_config(request, master_id):
         "slaves": []
     }
 
-    for position, slave in enumerate(slaves):  # position 从0开始
-        # 根据从站类型推断产品代码（目前只有 S1-EC20，但保留逻辑）
+    pos = 0  # 实际加入的从站位置计数器
+    for slave in slaves:
+        # 根据从站类型推断产品代码
         if slave.slave_type == 'S1-EC20':
             product_code = 701102003
             slave_type = 'S1-EC20'
         else:
-            product_code = 701102001  # 默认或备用
+            product_code = 701102001
             slave_type = 'S1-M20'
 
         slave_data = {
             "alias": 0,
-            "position": position,
+            "position": 0,  # 临时占位
             "slaveName": slave.name or slave.code,
             "slaveType": slave_type,
             "vendorId": 2877,
@@ -267,7 +268,7 @@ def deploy_master_config(request, master_id):
             "ioModules": []
         }
 
-        # 获取该从站下的所有模块，按插槽（slot）排序
+        # 获取该从站下的所有模块，按插槽排序
         modules = slave.modules.all().order_by('slot')
         for module in modules:
             # 根据模块类型映射 ioType
@@ -300,9 +301,8 @@ def deploy_master_config(request, master_id):
             else:
                 input_len, output_len = 0, 0
 
-            # 获取模块参数，如果未存储则使用默认值
+            # 获取模块参数
             parameters = module.parameters
-            print(f"Module {module.id} parameters: {module.parameters}")
             if not parameters:
                 if module.type == '16DI':
                     parameters = [{"filter": 1, "invertByte1": 0, "invertByte2": 0}]
@@ -317,7 +317,7 @@ def deploy_master_config(request, master_id):
 
             module_data = {
                 "ioType": io_type,
-                "slot": module.slot or 1,  # 使用模块的 slot 字段
+                "slot": module.slot or 1,
                 "orderNumber": order_number,
                 "inputLength": input_len,
                 "outputLength": output_len,
@@ -325,9 +325,16 @@ def deploy_master_config(request, master_id):
             }
             slave_data["ioModules"].append(module_data)
 
-        config_data["slaves"].append(slave_data)
+        # 仅当从站有模块时才加入最终列表
+        if slave_data["ioModules"]:
+            slave_data["position"] = pos
+            config_data["slaves"].append(slave_data)
+            pos += 1
 
-    # 通过 MQTT 发布
+    # 如果没有从站有模块，返回警告
+    if not config_data["slaves"]:
+        return Response({'warning': 'No slaves with modules under this master'}, status=status.HTTP_200_OK)
+
     topic = f"EtherCAT/Command/{master.name}/EscData"
     if mqtt_client.publish_message(topic, config_data):
         return Response({

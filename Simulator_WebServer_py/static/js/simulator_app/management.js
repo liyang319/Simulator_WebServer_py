@@ -1483,7 +1483,7 @@ function onModuleTypeChange() {
             <thead>
                 <tr>
                     <th>通道</th>
-                    <th>模式 (0-20)</th>
+                    <th>模式 (0-21)</th>
                     <th>单端/差分</th>
                     <th>滤波等级 (0-3)</th>
                 </tr>
@@ -1497,7 +1497,7 @@ function onModuleTypeChange() {
                 <td>通道 ${i+1}</td>
                 <td>
                     <select class="form-control" id="ai-mode-${i}">
-                        ${Array.from({length: 21}, (_, j) => `<option value="${j}">${j}</option>`).join('')}
+                        ${Array.from({length: 22}, (_, j) => `<option value="${j}">${j}</option>`).join('')}
                     </select>
                 </td>
                 <td>
@@ -1550,6 +1550,7 @@ function onModuleTypeChange() {
                 </td>
                 <td>
                     <select class="form-control" id="ao-current-${i}">
+                        <option value="0">0</option>
                         <option value="8">8</option>
                         <option value="16">16</option>
                         <option value="24">24</option>
