@@ -335,7 +335,7 @@ def deploy_master_config(request, master_id):
     if not config_data["slaves"]:
         return Response({'warning': 'No slaves with modules under this master'}, status=status.HTTP_200_OK)
 
-    topic = f"EtherCAT/Command/{master.name}/EscData"
+    topic = f"EtherCAT/Command/{master.name}/EscConfig"
     if mqtt_client.publish_message(topic, config_data):
         return Response({
             'success': True,

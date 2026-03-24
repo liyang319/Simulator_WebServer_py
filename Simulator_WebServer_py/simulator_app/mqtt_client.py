@@ -31,7 +31,7 @@ class SimpleMQTTClient:
         self.subscriptions = [
             'simulator/data/#',
             'simulator/command/#',
-            'EtherCAT/Command/+/EscData',
+            'EtherCAT/Command/+/EscConfig',
             'EtherCAT/Command/+/ControlData',
             'EtherCAT/Data/+/SampleData'
         ]
